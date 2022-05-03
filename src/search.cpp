@@ -470,8 +470,8 @@ void Thread::search() {
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
         //double choice = std::clamp((double) rootMoves.size() / 16, 0.25, 1.);
-          double choice = std::clamp(((double)rootMoves.size() - 2)/(16 - 2), 0.001, 1.0); // 2 --> 0, 16 --> 1
-          choice = std::sqrt(choice);
+        //double choice = std::clamp(((double)rootMoves.size() - 2)/(16 - 2), 0.001, 1.0); // 2 --> 0, 16 --> 1
+          double choice = std::clamp(1.8/(1+std::exp(-((double)rootMoves.size()-2)/7)) - 0.7, 0.2, 1.1); // logistic inflection at (2, 0.2), crosses y=1 at x~22, asymptote is y=1.1
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * choice;
 
