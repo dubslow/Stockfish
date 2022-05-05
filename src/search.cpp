@@ -603,7 +603,7 @@ namespace {
     (ss+1)->ttPv         = false;
     (ss+1)->excludedMove = bestMove = MOVE_NONE;
     (ss+2)->killers[0]   = (ss+2)->killers[1] = MOVE_NONE;
-    (ss+2)->cutoffCnt    = 0;
+    (ss+2)->cutoffCount  = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
@@ -1174,7 +1174,7 @@ moves_loop: // When in check, search starts here
               r -= 1 + 15 / ( 3 + depth );
 
           // Increase reduction if next ply has a lot of fail high else reset count to 0
-          if ((ss+1)->cutoffCnt > 3 && !PvNode)
+          if ((ss+1)->cutoffCount > 3 && !PvNode)
               r++;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
@@ -1311,14 +1311,14 @@ moves_loop: // When in check, search starts here
               }
               else
               {
-                  ss->cutoffCnt++;
+                  ss->cutoffCount++;
                   assert(value >= beta); // Fail high
                   break;
               }
           }
       }
       else
-         ss->cutoffCnt = 0;
+         ss->cutoffCount = 0;
 
 
       // If the move is worse than some previously searched move, remember it to update its stats later
