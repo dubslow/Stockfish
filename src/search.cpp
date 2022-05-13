@@ -1147,38 +1147,38 @@ moves_loop: // When in check, search starts here
               || !capture
               || (cutNode && (ss-1)->moveCount > 1)))
       {
-          Depth r = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
+          float reduc = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
 
           // Decrease reduction if position is or has been on the PV
           // and node is not likely to fail low. (~3 Elo)
           if (   ss->ttPv
               && !likelyFailLow)
-              r -= 2;
+              reduc -= 2.51;
 
           // Decrease reduction if opponent's move count is high (~1 Elo)
           if ((ss-1)->moveCount > 7)
-              r--;
+              reduc -= 1.51;
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode && move != ss->killers[0])
-              r += 2;
+              reduc += 2.51;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
-              r++;
+              reduc += 1.51;
 
           // Decrease reduction at PvNodes if bestvalue
           // is vastly different from static evaluation
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
-              r--;
+              reduc -= 1.51;
 
           // Decrease reduction for PvNodes based on depth
           if (PvNode)
-              r -= 1 + 15 / ( 3 + depth );
+              reduc -= 1.51 + 15.0 / ( 3 + depth );
 
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
-              r++;
+              reduc += 1.51;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1187,18 +1187,19 @@ moves_loop: // When in check, search starts here
                          - 4334;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          r -= ss->statScore / 15914;
+          reduc -= ss->statScore / 15914.0;
 
           // In general we want to cap the LMR depth search at newDepth. But if reductions
           // are really negative and movecount is low, we allow this move to be searched
           // deeper than the first move (this may lead to hidden double extensions).
-          int deeper =   r >= -1                   ? 0
+          int deeper =   reduc >= -1.0             ? 0
                        : moveCount <= 4            ? 2
                        : PvNode && depth > 4       ? 1
                        : cutNode && moveCount <= 8 ? 1
                        :                             0;
 
-          Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
+          reduc = std::clamp(newDepth - reduc, 1.0f, (float)newDepth + deeper);
+          Depth d = std::lround(reduc);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
