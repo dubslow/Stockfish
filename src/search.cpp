@@ -1153,32 +1153,32 @@ moves_loop: // When in check, search starts here
           // and node is not likely to fail low. (~3 Elo)
           if (   ss->ttPv
               && !likelyFailLow)
-              reduc -= 2.51;
+              reduc -= 2.44;
 
           // Decrease reduction if opponent's move count is high (~1 Elo)
           if ((ss-1)->moveCount > 7)
-              reduc -= 1.51;
+              reduc -= 1.22;
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode && move != ss->killers[0])
-              reduc += 2.51;
+              reduc += 2.44;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
-              reduc += 1.51;
+              reduc += 1.22;
 
           // Decrease reduction at PvNodes if bestvalue
           // is vastly different from static evaluation
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
-              reduc -= 1.51;
+              reduc -= 1.22;
 
           // Decrease reduction for PvNodes based on depth
           if (PvNode)
-              reduc -= 1.51 + 15.0 / ( 3 + depth );
+              reduc -= 1.22 + 15.0*1.22 / ( 3 + depth );
 
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
-              reduc += 1.51;
+              reduc += 1.22;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1187,7 +1187,7 @@ moves_loop: // When in check, search starts here
                          - 4334;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          reduc -= ss->statScore / 15914.0;
+          reduc -= ss->statScore / 15914.0 * 1.22;
 
           // In general we want to cap the LMR depth search at newDepth. But if reductions
           // are really negative and movecount is low, we allow this move to be searched
