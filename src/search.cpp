@@ -1061,10 +1061,10 @@ moves_loop: // When in check, search starts here
           // a reduced search on all the other moves but the ttMove and if the
           // result is lower than ttValue minus a margin, then we will extend the ttMove.
 
-          int depthBound =   thisThread->previousDepth <= 6  ? 6 // At higher depths, looser bound = more SEs
-                           : thisThread->previousDepth <= 13 ? 5
-                           : thisThread->previousDepth <= 26 ? 4
-                           : thisThread->previousDepth <= 53 ? 3
+          int depthBound =   thisThread->previousDepth <= 9  ? 6 // At higher depths, looser bound = more SEs
+                           : thisThread->previousDepth <= 15 ? 5
+                           : thisThread->previousDepth <= 27 ? 4
+                           : thisThread->previousDepth <= 45 ? 3
                            :                                   2;
 
           if (   !rootNode
