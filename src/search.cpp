@@ -1195,7 +1195,7 @@ moves_loop: // When in check, search starts here
           // In general we want to cap the LMR depth search at newDepth. But if reductions
           // are really negative and movecount is low, we allow this move to be searched
           // deeper than the first move (this may lead to hidden double extensions).
-          int pvDepthBound =   thisThread->previousDepth <= 18 ? 5
+          int pvDepthBound =   thisThread->previousDepth <= 18 ? 6
                              : thisThread->previousDepth <= 27 ? 4
                              :                                   3;
           int deeper =   r >= -1                   ? 0
