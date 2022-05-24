@@ -781,9 +781,8 @@ namespace {
     // Step 7. Razoring.
     // If eval is really low check with qsearch if it can exceed alpha, if it can't,
     // return a fail low.
-    razorDepthBound =   thisThread->previousDepth <= 18 ? 6
-                      : thisThread->previousDepth <= 27 ? 7
-                      :                                   8;
+    razorDepthBound =   thisThread->previousDepth <= 15 ? 6
+                      :                                   7;
     if (   !PvNode
         && depth <= razorDepthBound
         && eval < alpha - 348 - 258 * depth * depth)
