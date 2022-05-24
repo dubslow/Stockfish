@@ -559,6 +559,7 @@ namespace {
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
+    int razorDepthBound = 0 ;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -780,8 +781,11 @@ namespace {
     // Step 7. Razoring.
     // If eval is really low check with qsearch if it can exceed alpha, if it can't,
     // return a fail low.
+    razorDepthBound =   thisThread->previousDepth <= 18 ? 6
+                      : thisThread->previousDepth <= 27 ? 7
+                      :                                   8;
     if (   !PvNode
-        && depth <= 7
+        && depth <= razorDepthBound
         && eval < alpha - 348 - 258 * depth * depth)
     {
         value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
