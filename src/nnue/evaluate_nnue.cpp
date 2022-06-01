@@ -136,9 +136,8 @@ namespace Stockfish::Eval::NNUE {
     return (bool)stream;
   }
 
-auto f1 = [](int m){return m < 20 ? Range(m - 20, m + 20) : Range(m / 2, m * 3 / 2);};
 int D1=40, D2=6060;
-TUNE(SetRange(f1), D1, D2);
+TUNE(D1, D2);
 
   // Evaluation function. Perform differential calculation.
   Value evaluate(const Position& pos, bool adjusted, int* complexity) {
