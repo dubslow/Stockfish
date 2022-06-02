@@ -1069,7 +1069,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              int depthScale = std::max(5 - thisThread->previousDepth/13, 2);
+              int depthScale = tte->is_pv() + std::max(5 - thisThread->previousDepth/9, 2); // SEscaleDepth07 all over again
               Value singularBeta = ttValue - depthScale * depth;
               Depth singularDepth = (depth - 1) / 2;
 
