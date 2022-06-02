@@ -1051,6 +1051,18 @@ moves_loop: // When in check, search starts here
           }
       }
 
+/*
+ Here's the plan. 1) First we test something like SEscaleDepth15 or 16 -- 4-26-3-29-2 or 4-27-3-31-2 --
+ possibly with the STC bounds deleted, at VLTC (10% TP or something). I vote for 240+2.4 th 1 (or similar).
+ 2) Then, only if the VLTC shows gain from lowering bound to depth 2, then we proceed with this tune as
+ written here at LTC. This setup has the params as favored as possible to STC and VLTC, so tuning at LTC
+ should maximize LTC performance with minimal cost to STC/VLTC. 3) Ideally the final result should pass
+ gainer-bound SPRT at all 3 TCs vs current master.
+ Shall we proceed with a VLTC test regarding SEdepthBound < 3?
+ */
+int UB6=24, UB5=25, UB4=26, UB3=27;
+TUNE(SetRange(5,50), UB6, UB5, UB4, UB3);
+
       // Step 15. Extensions (~66 Elo)
       // We take care to not overdo to avoid search getting stuck.
       if (ss->ply < thisThread->rootDepth * 2)
@@ -1061,14 +1073,14 @@ moves_loop: // When in check, search starts here
           // a reduced search on all the other moves but the ttMove and if the
           // result is lower than ttValue minus a margin, then we will extend the ttMove.
 
-          int depthBound =   thisThread->previousDepth <= 19 ? 6 // At higher depths, looser bound = more SEs
-                           : thisThread->previousDepth <= 23 ? 5
-                           : thisThread->previousDepth <= 27 ? 4
-                           : thisThread->previousDepth <= 31 ? 3
-                           :                                   2;
+          int SEdepthBound =   thisThread->previousDepth <= UB6 ? 6 // At higher depths, looser bound = more SEs
+                             : thisThread->previousDepth <= UB5 ? 5
+                             : thisThread->previousDepth <= UB4 ? 4
+                             : thisThread->previousDepth <= UB3 ? 3
+                             :                                    2;
 
           if (   !rootNode
-              &&  depth >= depthBound + 2 * (PvNode && tte->is_pv())
+              &&  depth >= SEdepthBound + 2 * (PvNode && tte->is_pv())
               &&  move == ttMove
               && !excludedMove // Avoid recursive singular search
            /* &&  ttValue != VALUE_NONE Already implicit in the next condition */
