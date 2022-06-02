@@ -1069,7 +1069,8 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - 3 * depth;
+              int depthScale = std::max(5 - thisThread->previousDepth/13, 2);
+              Value singularBeta = ttValue - depthScale * depth;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
