@@ -1167,17 +1167,16 @@ moves_loop: // When in check, search starts here
           if (ttCapture)
               r++;
 
-          // Decrease reduction at PvNodes if bestvalue
-          // is vastly different from static evaluation
-          if (PvNode && !ss->inCheck)
-              r -= abs(ss->staticEval - bestValue) / 300;
-
-          // Decrease reduction for PvNodes based on depth
           if (PvNode)
+          {
+              // Decrease reduction for PvNodes based on depth
               r -= 1 + 15 / ( 3 + depth );
-
+              // Decrease reduction at PvNodes if bestvalue
+              // is vastly different from static evaluation
+              r -= abs(ss->staticEval - bestValue) / 250;
+          }
           // Increase reduction if next ply has a lot of fail high else reset count to 0
-          if ((ss+1)->cutoffCnt > 3 && !PvNode)
+          else if ((ss+1)->cutoffCnt > 3)
               r++;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
