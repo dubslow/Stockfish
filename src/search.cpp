@@ -1064,7 +1064,7 @@ moves_loop: // When in check, search starts here
           // Singular extensions have crazy non-linear scaling
           int SEscalingBound =   thisThread->previousDepth <= 18 ? 6 + 2*tte->is_pv()
                                : thisThread->previousDepth <= 26 ? 4 +   tte->is_pv() + PvNode
-                               :                                   3 + 2*PvNode;
+                               :                                   3 +   tte->is_pv() + 2*PvNode;
           if (   !rootNode
               &&  depth >= SEscalingBound
               &&  move == ttMove
