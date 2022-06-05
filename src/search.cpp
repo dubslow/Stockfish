@@ -1062,9 +1062,9 @@ moves_loop: // When in check, search starts here
           // result is lower than ttValue minus a margin, then we will extend the ttMove.
 
           // Singular extensions have crazy non-linear scaling
-          int SEscalingBound =   thisThread->previousDepth <= 18 ? 5 + 2*tte->is_pv()
+          int SEscalingBound =   thisThread->previousDepth <= 18 ? 6 + 2*tte->is_pv()
                                : thisThread->previousDepth <= 26 ? 4 +   tte->is_pv() + PvNode
-                               :                                   3 +   PvNode;
+                               :                                   3 + 2*PvNode;
           if (   !rootNode
               &&  depth >= SEscalingBound
               &&  move == ttMove
@@ -1074,7 +1074,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - (SEscalingBound-1) * depth;
+              Value singularBeta = ttValue - 3 * depth;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
