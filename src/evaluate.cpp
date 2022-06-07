@@ -1080,13 +1080,16 @@ make_v:
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
 
-Value Eval::evaluate(const Position& pos) {
+Value Eval::evaluate(const Position& pos, int* complexity) {
 
   Value v;
+  Color stm = pos.side_to_move();
+  Value psq = (stm == WHITE ? 1 : -1) * eg_value(pos.psq_score());
+
   // Deciding between classical and NNUE eval (~10 Elo): for high PSQ imbalance we use classical,
   // but we switch to NNUE during long shuffling or with high material on the board.
   bool useClassical = (pos.this_thread()->depth > 9 || pos.count<ALL_PIECES>() > 7) &&
-          abs(eg_value(pos.psq_score())) * 5 > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count());
+          abs(psq) * 5 > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count());
 
   // Deciding between classical and NNUE eval (~10 Elo): for high PSQ imbalance we use classical,
   // but we switch to NNUE during long shuffling or with high material on the board.
@@ -1099,19 +1102,20 @@ Value Eval::evaluate(const Position& pos) {
   // If result of a classical evaluation is much lower than threshold fall back to NNUE
   if (useNNUE && !useClassical)
   {
-       int complexity;
-       int scale      = 1048 + 109 * pos.non_pawn_material() / 5120;
-       Color stm      = pos.side_to_move();
-       Value optimism = pos.this_thread()->optimism[stm];
-       Value psq      = (stm == WHITE ? 1 : -1) * eg_value(pos.psq_score());
-       Value nnue     = NNUE::evaluate(pos, true, &complexity);     // NNUE
+      int localComplexity;
+      int scale      = 1048 + 109 * pos.non_pawn_material() / 5120;
+      Value optimism = pos.this_thread()->optimism[stm];
+      Value nnue     = NNUE::evaluate(pos, true, &localComplexity);
+      if (complexity) // Return pure NNUE complexity to caller (hybrid??)
+          *complexity = localComplexity;
 
-       complexity = (137 * complexity + 137 * abs(nnue - psq)) / 256;
-       optimism = optimism * (255 + complexity) / 256;
-       v = (nnue * scale + optimism * (scale - 848)) / 1024;
+      // For this purpose, blend pure NNUE complexity with hybrid complexity
+      localComplexity = (137 * localComplexity + 137 * abs(nnue - psq)) / 256;
+      optimism = optimism * (255 + localComplexity) / 256;
+      v = (nnue * scale + optimism * (scale - 848)) / 1024;
 
-       if (pos.is_chess960())
-           v += fix_FRC(pos);
+      if (pos.is_chess960())
+          v += fix_FRC(pos);
   }
 
   // Damp down the evaluation linearly when shuffling
@@ -1119,6 +1123,10 @@ Value Eval::evaluate(const Position& pos) {
 
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
+
+  // When not using NNUE, return classical complexity to caller
+  if (complexity && (!useNNUE || useClassical))
+      *complexity = abs(v - psq);
 
   return v;
 }
