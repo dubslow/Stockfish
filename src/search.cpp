@@ -559,7 +559,7 @@ namespace {
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement, complexity;
+    int moveCount, captureCount, quietCount, improvement, complexity = 0;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();

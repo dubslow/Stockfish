@@ -1105,12 +1105,13 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
       int localComplexity;
       int scale      = 1048 + 109 * pos.non_pawn_material() / 5120;
       Value optimism = pos.this_thread()->optimism[stm];
+
       Value nnue     = NNUE::evaluate(pos, true, &localComplexity);
-      if (complexity) // Return pure NNUE complexity to caller (hybrid??)
+      // Blend pure NNUE complexity with hybrid complexity
+      localComplexity = (137 * localComplexity + 137 * abs(nnue - psq)) / 256;
+      if (complexity) // Return hybrid NNUE complexity to caller (pure??)
           *complexity = localComplexity;
 
-      // For this purpose, blend pure NNUE complexity with hybrid complexity
-      localComplexity = (137 * localComplexity + 137 * abs(nnue - psq)) / 256;
       optimism = optimism * (255 + localComplexity) / 256;
       v = (nnue * scale + optimism * (scale - 848)) / 1024;
 
