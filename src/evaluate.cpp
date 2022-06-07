@@ -1102,12 +1102,12 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   // If result of a classical evaluation is much lower than threshold fall back to NNUE
   if (useNNUE && !useClassical)
   {
-      int localComplexity;
+      int localComplexity = 0;
       int scale      = 1048 + 109 * pos.non_pawn_material() / 5120;
       Value optimism = pos.this_thread()->optimism[stm];
 
       Value nnue     = NNUE::evaluate(pos, true, &localComplexity);
-      // Blend pure NNUE complexity with hybrid complexity
+      // Blend pure NNUE complexity (not always reliable) with semiclassical complexity
       localComplexity = (137 * localComplexity + 137 * abs(nnue - psq)) / 256;
       if (complexity) // Return hybrid NNUE complexity to caller (pure??)
           *complexity = localComplexity;
