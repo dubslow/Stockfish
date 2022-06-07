@@ -1076,7 +1076,7 @@ make_v:
 
 } // namespace Eval
 
-int E1=1048, E2=109, E4=137, E5=137, E7=255, E8=848;
+int E1=1104, E2=102, E4=137, E5=141, E7=253, E8=867;
 TUNE(E1, E2, E4, E5, E7, E8);
 
 /// evaluate() is the evaluator for the outer world. It returns a static

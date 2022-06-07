@@ -254,8 +254,8 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
-int CA1=202, TM2=326, NM1=28, NM2=753, TM3=1618;
-TUNE(CA1, TM2, NM1, NM2, TM3);
+int CA1=202, TM2=326, NM0=198, NM1=28, NM2=753, TM3=1618;
+TUNE(CA1, TM2, NM0, NM1, NM2, TM3);
 
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
@@ -803,7 +803,7 @@ namespace {
         && (ss-1)->statScore < 14695
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 15 * depth - improvement / 15 + 198 + complexity / NM1
+        &&  ss->staticEval >= beta - 15 * depth - improvement / 15 + NM0 + complexity / NM1
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
