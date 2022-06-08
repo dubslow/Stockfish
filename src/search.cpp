@@ -798,6 +798,11 @@ namespace {
         &&  eval < 26305) // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
         return eval;
 
+    // Short circuit step 11a
+    if (PvNode && !ttMove && depth <= 3)
+        return qsearch<PV>(pos, ss, alpha, beta);
+
+
     // Step 9. Null move search with verification search (~22 Elo)
     if (   !PvNode
         && (ss-1)->currentMove != MOVE_NULL
