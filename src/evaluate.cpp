@@ -1103,17 +1103,17 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   if (useNNUE && !useClassical)
   {
       int localComplexity = 0;
-      int scale      = 1048 + 109 * pos.non_pawn_material() / 5120;
+      int scale      = 1004 + 91 * pos.non_pawn_material() / 5120;
       Value optimism = pos.this_thread()->optimism[stm];
 
       Value nnue     = NNUE::evaluate(pos, true, &localComplexity);
       // Blend pure NNUE complexity (not always reliable) with semiclassical complexity
-      localComplexity = (137 * localComplexity + 137 * abs(nnue - psq)) / 256;
+      localComplexity = (124 * localComplexity + 149 * abs(nnue - psq)) / 256;
       if (complexity) // Return hybrid NNUE complexity to caller (pure??)
           *complexity = localComplexity;
 
-      optimism = optimism * (255 + localComplexity) / 256;
-      v = (nnue * scale + optimism * (scale - 848)) / 1024;
+      optimism = optimism * (232 + localComplexity) / 256;
+      v = (nnue * scale + optimism * (scale - 835)) / 1024;
 
       if (pos.is_chess960())
           v += fix_FRC(pos);
