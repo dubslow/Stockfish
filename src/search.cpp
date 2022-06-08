@@ -719,6 +719,10 @@ namespace {
             }
         }
     }
+    
+    // Short circuit step 11a
+    if (PvNode && !ttMove && depth <= 3)
+        return qsearch<PV>(pos, ss, alpha, beta);
 
     CapturePieceToHistory& captureHistory = thisThread->captureHistory;
 
