@@ -736,7 +736,7 @@ namespace {
         // Never assume anything about values stored in TT
         ss->staticEval = eval = tte->eval();
         if (eval == VALUE_NONE)
-            ss->staticEval = eval = evaluate(pos);
+            ss->staticEval = eval = evaluate(pos, &complexity);
 
         // Randomize draw evaluation
         if (eval == VALUE_DRAW)
@@ -749,7 +749,7 @@ namespace {
     }
     else
     {
-        ss->staticEval = eval = evaluate(pos);
+        ss->staticEval = eval = evaluate(pos, &complexity);
 
         // Save static evaluation into transposition table
         if (!excludedMove)
@@ -770,9 +770,7 @@ namespace {
     improvement =   (ss-2)->staticEval != VALUE_NONE ? ss->staticEval - (ss-2)->staticEval
                   : (ss-4)->staticEval != VALUE_NONE ? ss->staticEval - (ss-4)->staticEval
                   :                                    175;
-
     improving = improvement > 0;
-    complexity = abs(ss->staticEval - (us == WHITE ? eg_value(pos.psq_score()) : -eg_value(pos.psq_score())));
 
     thisThread->complexityAverage.update(complexity);
 
