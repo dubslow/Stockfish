@@ -254,6 +254,8 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
+int A=800, B=300;
+TUNE(SetRange(0,2000),A,B);
 
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
@@ -1175,7 +1177,7 @@ moves_loop: // When in check, search starts here
               // Decrease reduction for PvNodes based on depth
               r -= 1 + 15 / ( 3 + depth );
               // Decrease reduction at PvNodes according to complexity and eval gap
-              r -= complexity / 625 + abs(ss->staticEval - bestValue) / 250;
+              r -= complexity / A + abs(ss->staticEval - bestValue) / B;
           }
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           else if ((ss+1)->cutoffCnt > 3)
