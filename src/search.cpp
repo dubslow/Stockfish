@@ -254,6 +254,8 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
+int CA=185, TM2=305, TM3=1534, NM0=171, NM1=25, NM2=745;
+TUNE(CA, TM2, TM3, NM0, NM1, NM2);
 
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
@@ -307,7 +309,7 @@ void Thread::search() {
 
   multiPV = std::min(multiPV, rootMoves.size());
 
-  complexityAverage.set(185, 1);
+  complexityAverage.set(CA, 1);
 
   trend         = SCORE_ZERO;
   optimism[ us] = Value(39);
@@ -472,7 +474,7 @@ void Thread::search() {
           double reduction = (1.56 + mainThread->previousTimeReduction) / (2.20 * timeReduction);
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
-          double complexPosition = std::clamp(1.0 + (complexity - 306) / 1534, 0.5, 1.5);
+          double complexPosition = std::clamp(1.0 + (complexity - TM2) / TM3, 0.5, 1.5);
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
 
@@ -804,7 +806,7 @@ namespace {
         && (ss-1)->statScore < 14695
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 15 * depth - improvement / 15 + 172 + complexity / 28
+        &&  ss->staticEval >= beta - 15 * depth - improvement / 15 + NM0 + complexity / NM1
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
@@ -812,7 +814,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth, eval and complexity of position
-        Depth R = std::min(int(eval - beta) / 147, 5) + depth / 3 + 4 - (complexity > 746);
+        Depth R = std::min(int(eval - beta) / 147, 5) + depth / 3 + 4 - (complexity > NM2);
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
