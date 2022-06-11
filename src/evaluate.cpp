@@ -1084,17 +1084,17 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
 
   Value v;
   Color stm = pos.side_to_move();
-  Value psq = (stm == WHITE ? 1 : -1) * eg_value(pos.psq_score());
+  Value psq = pos.psq_eg_stm();
   // Deciding between classical and NNUE eval (~10 Elo): for high PSQ imbalance we use classical,
   // but we switch to NNUE during long shuffling or with high material on the board.
   bool useClassical = (pos.this_thread()->depth > 9 || pos.count<ALL_PIECES>() > 7) &&
-          abs(eg_value(pos.psq_score())) * 5 > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count());
+          abs(psq) * 5 > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count());
 
   // Deciding between classical and NNUE eval (~10 Elo): for high PSQ imbalance we use classical,
   // but we switch to NNUE during long shuffling or with high material on the board.
   if (!useNNUE || useClassical)
   {
-      v = Evaluation<NO_TRACE>(pos).value();          // classical
+      v = Evaluation<NO_TRACE>(pos).value();
       useClassical = abs(v) >= 297;
   }
 
@@ -1102,12 +1102,13 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   if (useNNUE && !useClassical)
   {
        int nnueComplexity;
-       int scale      = 1048 + 109 * pos.non_pawn_material() / 5120;
+       int scale = 1048 + 109 * pos.non_pawn_material() / 5120;
        Value optimism = pos.this_thread()->optimism[stm];
 
-       Value nnue     = NNUE::evaluate(pos, true, &nnueComplexity);     // NNUE
+       Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
        if (complexity) // Return pure NNUE complexity to caller
            *complexity = nnueComplexity;
+       // Blend nnue complexity with (semi)classical complexity
        nnueComplexity = (137 * nnueComplexity + 137 * abs(nnue - psq)) / 256;
 
        optimism = optimism * (255 + nnueComplexity) / 256;
