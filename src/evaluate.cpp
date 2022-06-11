@@ -1076,6 +1076,9 @@ make_v:
 
 } // namespace Eval
 
+int E1=1104, E2=102, E4=128, E5=128, E7=255, E8=800;
+TUNE(E1, E2, E4, E5, E7, E8);
+
 
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
@@ -1102,17 +1105,17 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   if (useNNUE && !useClassical)
   {
        int nnueComplexity;
-       int scale = 1048 + 94 * pos.non_pawn_material() / 5120;
+       int scale = E1 + E2 * pos.non_pawn_material() / 5120;
        Value optimism = pos.this_thread()->optimism[stm];
 
        Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
        // Blend nnue complexity with (semi)classical complexity
-       nnueComplexity = (115 * nnueComplexity + 142 * abs(nnue - psq)) / 256;
+       nnueComplexity = (E4 * nnueComplexity + E5 * abs(nnue - psq)) / 256;
        if (complexity) // Return hybrid NNUE complexity to caller
            *complexity = nnueComplexity;
 
-       optimism = optimism * (230 + nnueComplexity) / 256;
-       v = (nnue * scale + optimism * (scale - 785)) / 1024;
+       optimism = optimism * (E7 + nnueComplexity) / 256;
+       v = (nnue * scale + optimism * (scale - E8)) / 1024;
 
        if (pos.is_chess960())
            v += fix_FRC(pos);
