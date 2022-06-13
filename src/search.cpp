@@ -517,10 +517,9 @@ void Thread::search() {
 
 namespace {
 
-              int C1=2, PL1=-32, PD1=-16, C2=20, PL2=-64, PD2=-32, T2=5;
-              TUNE(SetRange(-1000,1000), PL1, PD1, PL2, PD2);
-              TUNE(SetRange(-100,100), C2);
-              TUNE(SetRange(-20,20), C1, T2);
+              int T1=2, C1=0, PL1=0, T2=0, C2=0, PL2=0;
+              TUNE(SetRange(-1000,1000), T2, C2, PL1, PL2);
+              TUNE(SetRange(-20,20), T1, C1);
 
   // search<>() is the main search function for both PV and non-PV nodes
 
@@ -1077,8 +1076,8 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              int slope    =    tte->is_pv() + C1 + (PL1*ss->ply)/512 + (PD1*thisThread->previousDepth)/512;
-              int constant = T2*tte->is_pv() + C2 + (PL2*ss->ply)/512 + (PD2*thisThread->previousDepth)/512;
+              const int slope    = T1*tte->is_pv() + C1 + (PL1*ss->ply)/64;
+              const int constant = T2*tte->is_pv() + C2 + (PL2*ss->ply)/128;
               Value singularBeta = ttValue - slope * depth + constant;
               Depth singularDepth = (depth - 1) / 2;
 
@@ -1396,6 +1395,7 @@ moves_loop: // When in check, search starts here
 
     return bestValue;
   }
+
 
   // qsearch() is the quiescence search function, which is called by the main search
   // function with zero depth, or recursively with further decreasing depth per call.
