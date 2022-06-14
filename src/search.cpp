@@ -1072,9 +1072,9 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              int C1=6, PL1=145, PD1=-60, C2=-1, PL2=15, PD2=-75, T2=4;
-              int slope    =    tte->is_pv() + C1 + (PL1*ss->ply)/512 + (PD1*thisThread->previousDepth)/512;
-              int constant = T2*tte->is_pv() + C2 + (PL2*ss->ply)/512 + (PD2*thisThread->previousDepth)/512;
+              int C1=6, PL1=145, C2=-1, PL2=15, T2=4;
+              int slope    =    tte->is_pv() + C1 + (PL1*ss->ply)/512;
+              int constant = T2*tte->is_pv() + C2 + (PL2*ss->ply)/512;
               Value singularBeta = ttValue - slope * depth + constant;
               Depth singularDepth = (depth - 1) / 2;
 
