@@ -517,9 +517,6 @@ void Thread::search() {
 
 namespace {
 
-              int T1=2, C1=0, PL1=0, T2=0, C2=0, PL2=0;
-              TUNE(SetRange(-1000,1000), T2, C2, PL1, PL2);
-              TUNE(SetRange(-20,20), T1, C1);
 
   // search<>() is the main search function for both PV and non-PV nodes
 
@@ -1076,6 +1073,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
+              int T1=1, C1=1, PL1=14, T2=-153, C2=-16, PL2=-100;
               const int slope    = T1*tte->is_pv() + C1 + (PL1*ss->ply)/64;
               const int constant = T2*tte->is_pv() + C2 + (PL2*ss->ply)/128;
               Value singularBeta = ttValue - slope * depth + constant;
