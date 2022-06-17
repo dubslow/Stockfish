@@ -1187,7 +1187,7 @@ moves_loop: // When in check, search starts here
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
           r -= ss->statScore / 15914;
 
-          Depth d = std::clamp(newDepth - r, 1, newDepth);
+          Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
