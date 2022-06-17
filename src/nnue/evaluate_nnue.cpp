@@ -136,9 +136,6 @@ namespace Stockfish::Eval::NNUE {
     return (bool)stream;
   }
 
-int D1=0, D2=10000;
-TUNE(SetRange(-200, 200), D1);
-TUNE(D2);
   // Evaluation function. Perform differential calculation.
   Value evaluate(const Position& pos, bool adjusted, int* complexity) {
 
@@ -146,7 +143,7 @@ TUNE(D2);
     // overaligning stack variables with alignas() doesn't work correctly.
 
     constexpr uint64_t alignment = CacheLineSize;
-    int delta = D1 - pos.non_pawn_material() / D2;
+    int delta = 24 - pos.non_pawn_material() / 9560;
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned[
