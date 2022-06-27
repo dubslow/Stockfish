@@ -137,7 +137,7 @@ namespace Stockfish::Eval::NNUE {
   }
 
   // Evaluation function. Perform differential calculation.
-  Value evaluate(const Position& pos, bool adjusted, int* complexity) {
+  Value evaluate(const Position& pos, bool adjusted, unsigned int* complexity) {
 
     // We manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.

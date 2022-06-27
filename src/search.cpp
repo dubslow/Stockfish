@@ -471,8 +471,8 @@ void Thread::search() {
           timeReduction = lastBestMoveDepth + 10 < completedDepth ? 1.63 : 0.73;
           double reduction = (1.56 + mainThread->previousTimeReduction) / (2.20 * timeReduction);
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
-          int complexity = mainThread->complexityAverage.value();
-          double complexPosition = std::clamp(1.0 + (complexity - 277) / 1819, 0.5, 1.5);
+          unsigned int complexity = mainThread->complexityAverage.value();
+          double complexPosition = std::clamp(1.0 + ((int)complexity - 277) / 1819, 0.5, 1.5);
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
 
@@ -559,7 +559,8 @@ namespace {
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement, complexity;
+    int moveCount, captureCount, quietCount, improvement;
+    unsigned int complexity;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -803,7 +804,7 @@ namespace {
         && (ss-1)->statScore < 14695
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 15 * depth - improvement / 15 + 201 + complexity / 24
+        &&  ss->staticEval >= beta - 15 * depth - improvement / 15 + 201 + static_cast<int>(complexity) / 24
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
