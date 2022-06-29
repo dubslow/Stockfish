@@ -741,7 +741,7 @@ namespace {
             thisThread->complexityAverage.update(complexity);
         }
         else // Fall back to complexity running average for TT hits, the NNUE complexity is lost
-            complexity = thisThread->complexityAverage.value();
+            complexity = thisThread->complexityAverage.value() + abs(ss->staticEval - pos.psq_eg_stm());
 
         // Randomize draw evaluation
         if (eval == VALUE_DRAW)
