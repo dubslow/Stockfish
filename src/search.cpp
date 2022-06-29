@@ -736,9 +736,12 @@ namespace {
         // Never assume anything about values stored in TT
         ss->staticEval = eval = tte->eval();
         if (eval == VALUE_NONE)
+        {
             ss->staticEval = eval = evaluate(pos, &complexity);
-        else // Fall back to (semi)classical complexity for TT hits, the NNUE complexity is lost
-            complexity = abs(ss->staticEval - pos.psq_eg_stm());
+            thisThread->complexityAverage.update(complexity);
+        }
+        else // Fall back to complexity running average for TT hits, the NNUE complexity is lost
+            complexity = thisThread->complexityAverage.value();
 
         // Randomize draw evaluation
         if (eval == VALUE_DRAW)
@@ -752,13 +755,12 @@ namespace {
     else
     {
         ss->staticEval = eval = evaluate(pos, &complexity);
+        thisThread->complexityAverage.update(complexity);
 
         // Save static evaluation into transposition table
         if (!excludedMove)
             tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
     }
-
-    thisThread->complexityAverage.update(complexity);
 
     // Use static evaluation difference to improve quiet move ordering (~3 Elo)
     if (is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture)
