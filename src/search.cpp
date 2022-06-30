@@ -254,10 +254,6 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
-int A=277, B=1819, X=256, Y=768;
-TUNE(A, B, X);
-TUNE(SetRange(512, 1024), Y);
-
 
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
@@ -476,7 +472,7 @@ void Thread::search() {
           double reduction = (1.56 + mainThread->previousTimeReduction) / (2.20 * timeReduction);
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
-          double complexPosition = std::clamp(1.0 + (complexity - A) / B, X/512.0, Y/512.0);
+          double complexPosition = std::clamp(1.0 + (complexity - 309) / 1680, 0.48, 1.49);
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
 
