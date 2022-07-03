@@ -54,6 +54,7 @@ namespace TB = Tablebases;
 
 using std::string;
 using Eval::evaluate;
+using Eval::classical_complexity;
 using namespace Search;
 
 namespace {
@@ -740,8 +741,11 @@ namespace {
             ss->staticEval = eval = evaluate(pos, &complexity);
             thisThread->complexityAverage.update(complexity);
         }
-        else // Fall back to complexity running average for TT hits, the NNUE complexity is lost
-            complexity = thisThread->complexityAverage.value() + abs(ss->staticEval - pos.psq_eg_stm());
+        else // For TT hits, the NNUE complexity is lost, and the eval has some shuffle-dampening from
+             // evaluate.cpp which isn't present in normal complexity. Therefore we fall back to the
+             // (semi)classical-only complexity here, don't-update the running average, and we blend
+             // the classical with the running average with ad hoc weighting.
+            complexity = thisThread->complexityAverage.value() + 2 * classical_complexity(pos, ss->staticEval);
 
         // Randomize draw evaluation
         if (eval == VALUE_DRAW)

@@ -1107,7 +1107,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
 
        Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
        // Blend nnue complexity with (semi)classical complexity
-       nnueComplexity = (104 * nnueComplexity + 131 * abs(nnue - psq)) / 256;
+       nnueComplexity = (104 * nnueComplexity + 131 * classical_complexity(pos, nnue)) / 256;
        if (complexity) // Return hybrid NNUE complexity to caller
            *complexity = nnueComplexity;
 
@@ -1117,18 +1117,24 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
        if (pos.is_chess960())
            v += fix_FRC(pos);
   }
+  else if (complexity) // Return classical-only complexity when skipping NNUE
+        *complexity = classical_complexity(pos, v);
 
   // Damp down the evaluation linearly when shuffling
   v = v * (195 - pos.rule50_count()) / 211;
+  // Note that TThits lose the pre-dampening eval, so TThit complexity is a bit weird (see search.cpp)
 
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 
-  // When not using NNUE, return classical complexity to caller
-  if (complexity && (!useNNUE || useClassical))
-       *complexity = abs(v - psq);
-
   return v;
+}
+
+inline int Eval::classical_complexity(const Position& pos, Value staticEval) {
+  auto me = Material::probe(pos);
+  int phase = int(me->game_phase());
+  // This matches the blending done in Evaluation<T>::winnable
+  return (phase * abs(staticEval - pos.psq_mg_stm()) + (PHASE_MIDGAME - phase) * abs(staticEval - pos.psq_eg_stm())) / PHASE_MIDGAME;
 }
 
 /// trace() is like evaluate(), but instead of returning a value, it returns
