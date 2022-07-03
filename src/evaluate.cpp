@@ -1086,18 +1086,19 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   Color stm = pos.side_to_move();
   Value psq = pos.psq_eg_stm();
 
+  // In general, NNUE eval is preferred, but in some cases the classical eval is superior (~10 Elo).
+  // With low piece counts or low depth, NNUE eval should always be used. Conversely, if there is a
+  // high PSQ imbalance and low 50-move rule counter, the classical eval may be restarted...
   bool useClassical = !useNNUE ||
-  ( // In general we prefer NNUE evaluation, but in some cases the classical eval is superior (~10 Elo).
-    // With low piece counts or low depth, always use NNUE; conversely, if there is a high PSQ imbalance
-    // and low 50 move rule counter, we may switch back to classical...
-       (pos.this_thread()->depth > 9 || pos.count<ALL_PIECES>() > 7)
+  (
+    (pos.this_thread()->depth > 9 || pos.count<ALL_PIECES>() > 7)
     && 5 * abs(psq) > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count())
   );
 
   if (useClassical)
   {
       v = Evaluation<NO_TRACE>(pos).value();
-      // ...however, even after computing the classical eval, we still fall back to NNUE for drawish positions.
+      // ...however, even after computing the classical eval, we still fall back to NNUE eval for drawish positions.
       useClassical = abs(v) >= 297;
   }
 
