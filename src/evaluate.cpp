@@ -1070,16 +1070,16 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   if (useNNUE && !useClassical)
   {
        int nnueComplexity;
-       int scale = 1064 + 106 * pos.non_pawn_material() / 5120;
+       int scale = 1056 + 78 * pos.non_pawn_material() / 5120;
        Value optimism = pos.this_thread()->optimism[stm];
 
        Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
        // Blend nnue complexity with (semi)classical complexity
-       nnueComplexity = (104 * nnueComplexity + 131 * abs(nnue - psq)) / 256;
+       nnueComplexity = (89 * nnueComplexity + 130 * abs(nnue - psq)) / 256;
        if (complexity) // Return hybrid NNUE complexity to caller
            *complexity = nnueComplexity;
 
-       optimism = optimism * (269 + nnueComplexity) / 256;
+       optimism = optimism * (250 + nnueComplexity) / 256;
        v = (nnue * scale + optimism * (scale - 754)) / 1024;
   }
 
