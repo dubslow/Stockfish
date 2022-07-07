@@ -899,11 +899,11 @@ namespace {
             }
     }
 
-    // Step 11. If the position is not in TT, decrease depth by 3.
+    // Step 11. If the position is not in TT, decrease depth by 3-6.
     // Use qsearch if depth is equal or below zero (~4 Elo)
     if (    PvNode
         && !ttMove)
-        depth -= thisThread->nodes & 1 ? 5 : 3;
+        depth -= 3 + (thisThread->nodes & 0x3);
 
     if (depth <= 0)
         return qsearch<PV>(pos, ss, alpha, beta);
