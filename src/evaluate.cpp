@@ -1075,14 +1075,15 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
 
        Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
        // Blend nnue complexity with (semi)classical complexity
-       nnueComplexity = (104 * nnueComplexity + 131 * classical_complexity(pos, nnue)) / 256;
+       int nnueWeight = 220;
+       nnueComplexity = (nnueWeight * nnueComplexity + (512 - nnueWeight) * classical_complexity(pos, nnue)) / 512;
        if (complexity) // Return hybrid NNUE complexity to caller
            *complexity = nnueComplexity;
 
        optimism = optimism * (269 + nnueComplexity) / 256;
        v = (nnue * scale + optimism * (scale - 754)) / 1024;
   }
-  else if (complexity) // Return classical-only complexity when skipping NNUE
+  else if (complexity) // Return (semi)classical-only complexity when skipping NNUE
         *complexity = classical_complexity(pos, v);
 
   // Damp down the evaluation linearly when shuffling
@@ -1099,7 +1100,8 @@ inline int Eval::classical_complexity(const Position& pos, Value staticEval) {
   auto me = Material::probe(pos);
   int phase = int(me->game_phase());
   // This matches the blending done in Evaluation<T>::winnable
-  return (phase * abs(staticEval - pos.psq_mg_stm()) + (PHASE_MIDGAME - phase) * abs(staticEval - pos.psq_eg_stm())) / PHASE_MIDGAME;
+  int complexity = (phase * abs(staticEval - pos.psq_mg_stm()) + (PHASE_MIDGAME - phase) * abs(staticEval - pos.psq_eg_stm())) / PHASE_MIDGAME;
+  return (256 * complexity) / 256; // Apply some tuned inflation here to match the magnitude of NNUE complexity
 }
 
 /// trace() is like evaluate(), but instead of returning a value, it returns

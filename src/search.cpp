@@ -743,11 +743,15 @@ namespace {
             ss->staticEval = eval = evaluate(pos, &complexity);
             thisThread->complexityAverage.update(complexity);
         }
-        else // For TT hits, the NNUE complexity is lost, and the eval has some shuffle-dampening from
-             // evaluate.cpp which isn't present in normal complexity. Therefore we fall back to the
-             // (semi)classical-only complexity here, don't-update the running average, and we blend
-             // the classical with the running average with ad hoc weighting.
-            complexity = thisThread->complexityAverage.value() + 2 * classical_complexity(pos, ss->staticEval);
+        else
+        {   // For TT hits, the NNUE complexity is lost, and the eval has some shuffle-dampening from
+            // evaluate.cpp which isn't present in normal complexity. Therefore we fall back to the
+            // (semi)classical-only complexity here, inflated arbitrarily to compensate for shuffle dampening,
+            // and we blend the classical with the old running average with arbitrary weighting.
+            int classicalComplexity = (256 * classical_complexity(pos, ss->staticEval)) / 128;
+            complexity = (0 * thisThread->complexityAverage.value() + 512 * classicalComplexity) / 512;
+            thisThread->complexityAverage.update(classicalComplexity);
+        }
 
         // Randomize draw evaluation
         if (eval == VALUE_DRAW)
