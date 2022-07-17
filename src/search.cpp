@@ -61,11 +61,6 @@ namespace {
   // Different node types, used as a template parameter
   enum NodeType { NonPV, PV, Root };
 
-  // Futility margin
-  Value futility_margin(Depth d, bool improving) {
-    return Value(168 * (d - improving));
-  }
-
   // Reductions lookup table, initialized at startup
   int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
@@ -792,11 +787,11 @@ namespace {
 
     // Step 8. Futility pruning: child node (~25 Elo).
     // The depth condition is important for mate finding.
-    if (   !ss->ttPv
+    if (    !ss->ttPv
         &&  depth < 8
-        &&  eval - futility_margin(depth, improving) - (ss-1)->statScore / 256 >= beta
+        &&  eval < 26305 // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
         &&  eval >= beta
-        &&  eval < 26305) // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
+        &&  eval >= beta + 210 * depth - 240 * improving + (ss-1)->statScore / 256 + 0)
         return eval;
 
     // Step 9. Null move search with verification search (~22 Elo)
