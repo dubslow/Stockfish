@@ -475,7 +475,7 @@ void Thread::search() {
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
 
           // For complex position, use a piecewise join of two lines
-          int complexity = mainThread->complexityAverage.value(), cMid = 277;
+          int complexity = mainThread->complexityAverage.value(), cMid = 230;
           double dLow = 0.5, loSlope = (1.0 - dLow) / double(cMid), hiSlope = 1.0 / 1819.1, dMax = 1.5;
           double complexPosition = complexity < cMid ? complexity * loSlope + dLow
                                                      : std::min(1.0 + (complexity - cMid) * hiSlope, dMax);
