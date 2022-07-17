@@ -511,6 +511,10 @@ void Thread::search() {
                 skill.best ? skill.best : skill.pick_best(multiPV)));
 }
 
+int A=210, B=240, C=256, D=0;
+TUNE(SetRange(-20000/7,20000/7), A);
+TUNE(SetRange(-20000,20000), B, D);
+TUNE(SetRange(0,8192), C);
 
 namespace {
 
@@ -791,7 +795,7 @@ namespace {
         &&  depth < 8
         &&  eval < 26305 // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
         &&  eval >= beta
-        &&  eval >= beta + 210 * depth - 240 * improving + (ss-1)->statScore / 256 + 0)
+        &&  eval >= beta + A * depth - B * improving + (ss-1)->statScore / C + D)
         return eval;
 
     // Step 9. Null move search with verification search (~22 Elo)
