@@ -512,8 +512,8 @@ void Thread::search() {
 }
 
 int A=210, B=240, C=256, D=0;
-TUNE(SetRange(-1000,1000), A, B, D);
-TUNE(SetRange(1,1024), C);
+TUNE(SetRange(-500,500), A, B, D);
+TUNE(SetRange(1,512), C);
 
 namespace {
 
