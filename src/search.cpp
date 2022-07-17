@@ -512,8 +512,8 @@ void Thread::search() {
 }
 
 int A=210, B=240, C=256, D=0;
-TUNE(SetRange(-10000,10000), A, B, D);
-TUNE(SetRange(-4096,4096), C);
+TUNE(SetRange(-1000,1000), A, B, D);
+TUNE(SetRange(1,1024), C);
 
 namespace {
 
@@ -790,11 +790,11 @@ namespace {
 
     // Step 8. Futility pruning: child node (~25 Elo).
     // The depth condition is important for mate finding.
-    if (    !ss->ttPv
+    if (   !ss->ttPv
         &&  depth < 8
-        &&  eval < 26305 // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
+        &&  eval >= beta + A * depth - B * improving + (ss-1)->statScore / C + D
         &&  eval >= beta
-        &&  eval >= beta + A * depth - B * improving + (ss-1)->statScore / C + D)
+        &&  eval < 26305) // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
         return eval;
 
     // Step 9. Null move search with verification search (~22 Elo)
