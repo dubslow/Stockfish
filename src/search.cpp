@@ -511,9 +511,7 @@ void Thread::search() {
                 skill.best ? skill.best : skill.pick_best(multiPV)));
 }
 
-int A=210, B=240, C=256, D=0;
-TUNE(SetRange(-10000,10000), A, B, D);
-TUNE(SetRange(-4096,4096), C);
+int A=4200, B=5100, C=2700, D=1000;
 
 namespace {
 
