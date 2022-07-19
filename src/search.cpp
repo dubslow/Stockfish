@@ -1167,10 +1167,7 @@ moves_loop: // When in check, search starts here
               // Increase reduction if next ply has a lot of fail high else reset count to 0
               r += ((ss+1)->cutoffCnt > 3);
 
-              r += 1; // Allnodes and cutnodes get reduction
-              // Cutnodes get more
-              if (cutNode)
-                  r += 1;
+              r += 2; // Allnodes and cutnodes get reduction
           }
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
