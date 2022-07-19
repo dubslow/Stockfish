@@ -788,11 +788,11 @@ namespace {
 
     // Step 8. Futility pruning: child node (~25 Elo).
     // The depth condition is important for mate finding.
-    if (    !ss->ttPv
+    if (   !ss->ttPv
         &&  depth < 8
-        &&  eval < 26305 // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
+        &&  eval >= beta + A * depth - B * improving + (ss-1)->statScore / C + D
         &&  eval >= beta
-        &&  eval >= beta + A * depth - B * improving + (ss-1)->statScore / C + D)
+        &&  eval < 26305) // larger than VALUE_KNOWN_WIN, but smaller than TB wins.
         return eval;
 
     // Step 9. Null move search with verification search (~22 Elo)
