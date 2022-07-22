@@ -254,7 +254,7 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
-int LO=500, MID=277, HI=1500, SLP=1700;
+int LO=300, MID=307, HI=1500, SLP=1800;
 TUNE(SetRange(0,1000),    LO );
 TUNE(SetRange(50,600),    MID);
 TUNE(SetRange(1000,2000), HI );
@@ -480,7 +480,7 @@ void Thread::search() {
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
 
           // For complex position, use a piecewise join of two lines
-          int complexity = mainThread->complexityAverage.value(), cMid = 277;
+          int complexity = mainThread->complexityAverage.value(), cMid = MID;
           double dLow = LO/double(1000), loSlope = (1.0 - dLow) / double(cMid), hiSlope = 1.0 / double(SLP), dMax = HI/double(1000);
           double complexPosition = complexity < cMid ? complexity * loSlope + dLow
                                                      : std::min(1.0 + (complexity - cMid) * hiSlope, dMax);
