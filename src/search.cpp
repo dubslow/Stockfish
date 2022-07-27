@@ -481,7 +481,7 @@ void Thread::search() {
 
           // For complex position, use a piecewise join of two lines
           int complexity = mainThread->complexityAverage.value(), cMid = 304;
-          double dLow = 0.26, loSlope = (1.0 - dLow) / double(cMid), hiSlope = 1.0 / double(1810), dMax = 1.45;
+          double dLow = 0.22, loSlope = (1.0 - dLow) / double(cMid), hiSlope = 1.0 / double(1810), dMax = 1.40;
           double complexPosition = complexity < cMid ? complexity * loSlope + dLow
                                                      : std::min(1.0 + (complexity - cMid) * hiSlope, dMax);
 
