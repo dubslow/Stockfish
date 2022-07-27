@@ -1044,11 +1044,11 @@ make_v:
 
 } // namespace Eval
 
-auto f1 = [](int m){return Range(m * 3 / 4, m * 5 / 4);};
-auto f2 = [](int m){return Range(m / 2, m * 3 / 2);};
-int A=1064, B=170, C=104, D=131, E=269, F=754, G=195, H=211;
-TUNE(SetRange(f1), A, B, C, D);
-TUNE(SetRange(f2), E, F, G, H);
+//auto f1 = [](int m){return Range(m * 3 / 4, m * 5 / 4);};
+//auto f2 = [](int m){return Range(m / 2, m * 3 / 2);};
+int A=1051, B=169, C=104, D=132, E=251, F=755, G=197, H=228;
+//TUNE(SetRange(f1), A, B, C, D);
+//TUNE(SetRange(f2), E, F, G, H);
 
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
