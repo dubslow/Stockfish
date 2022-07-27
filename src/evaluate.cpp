@@ -1046,7 +1046,7 @@ make_v:
 
 //auto f1 = [](int m){return Range(m * 3 / 4, m * 5 / 4);};
 //auto f2 = [](int m){return Range(m / 2, m * 3 / 2);};
-int A=1051, B=169, C=104, D=132, E=251, F=755, G=197, H=228;
+int A=1039, B=166, C=103, D=131, E=253, F=755, G=195, H=224;
 //TUNE(SetRange(f1), A, B, C, D);
 //TUNE(SetRange(f2), E, F, G, H);
 
