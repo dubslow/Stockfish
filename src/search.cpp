@@ -475,8 +475,9 @@ void Thread::search() {
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::min(1.0 + (complexity - 277) / 1819.1, 1.5);
+          double predicted = rootMoves[0].pv[0] == mainThread->followingMove ? 0.9 : 1.2;
 
-          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
+          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * predicted;
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
@@ -514,6 +515,12 @@ void Thread::search() {
   if (skill.enabled())
       std::swap(rootMoves[0], *std::find(rootMoves.begin(), rootMoves.end(),
                 skill.best ? skill.best : skill.pick_best(multiPV)));
+
+  // Store our predicted next move
+  if (rootMoves[0].pv.size() > 2)
+      mainThread->followingMove = rootMoves[0].pv[2];
+  else
+      mainThread->followingMove = MOVE_NONE;
 }
 
 

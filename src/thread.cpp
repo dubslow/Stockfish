@@ -164,6 +164,7 @@ void ThreadPool::clear() {
   main()->bestPreviousScore = VALUE_INFINITE;
   main()->bestPreviousAverageScore = VALUE_INFINITE;
   main()->previousTimeReduction = 1.0;
+  main()->followingMove = MOVE_NONE;
 }
 
 
