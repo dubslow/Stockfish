@@ -1070,7 +1070,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   if (useNNUE && !useClassical)
   {
        int nnueComplexity;
-       int scale = 850 + 106 * pos.non_pawn_material() / 5120;
+       int scale = 1094 + 106 * pos.non_pawn_material() / 5120;
        Value optimism = pos.this_thread()->optimism[stm];
 
        Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
@@ -1080,7 +1080,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
            *complexity = nnueComplexity;
 
        optimism = optimism * (269 + nnueComplexity) / 256;
-       v = (nnue * scale + optimism * (scale - (754*850/1064))) / 1024;
+       v = (nnue * scale + optimism * (scale - 775)) / 1024;
   }
 
   // Damp down the evaluation linearly when shuffling
