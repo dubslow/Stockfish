@@ -1058,7 +1058,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   // With low piece counts, always use NNUE; otherwise, if there is also a high PSQ-vs-simple-material
   // imbalance and little shuffling, switch back to classical.
   bool useClassical = !useNNUE || ((pos.count<ALL_PIECES>() > 7)
-                      && 5 * abs(psq) > (856 + pos.non_pawn_material() / 64));
+                      && 5 * abs(psq) > (856 + pos.non_pawn_material() / 64) * 32);
 
   if (useClassical)
       v = Evaluation<NO_TRACE>(pos).value();
