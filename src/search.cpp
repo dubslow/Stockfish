@@ -779,10 +779,8 @@ namespace {
     // Step 7a: verify static evals
     if (eval == VALUE_NONE) // Fresh static evaluation was made, verify and store it
     {
-        if (ss->staticEval <= alpha)
-            eval = qsearch<PvNode ? PV : NonPV>(pos, ss, alpha-1, alpha);
-        else if (PvNode && ss->staticEval < beta)
-            eval = qsearch<PV>(pos, ss, alpha, beta); // The large window is the most expensive surely?
+        if (!PvNode)
+            eval = qsearch<NonPV>(pos, ss, alpha-1, alpha);
         else
             eval = ss->staticEval;
     }
