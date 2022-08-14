@@ -779,10 +779,7 @@ namespace {
     // Step 7a: verify static evals
     if (eval == VALUE_NONE) // Fresh static evaluation was made, verify and store it
     {
-        if (!PvNode)
-            eval = qsearch<NonPV>(pos, ss, alpha-1, alpha);
-        else
-            eval = ss->staticEval;
+            eval = qsearch<NonPV>(pos, ss, alpha, beta);
     }
 
     // Step 7b. Razoring of static-or-TT evals.
