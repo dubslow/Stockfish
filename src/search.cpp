@@ -540,6 +540,8 @@ namespace {
             return alpha;
     }
 
+    ss->staticEval = VALUE_NONE;
+
     // Dive into quiescence search when the depth reaches zero
     if (depth <= 0)
         return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
@@ -721,6 +723,7 @@ namespace {
     }
 
     CapturePieceToHistory& captureHistory = thisThread->captureHistory;
+    eval = VALUE_NONE;
 
     // Step 6. Static evaluation of the position
     if (ss->inCheck)
@@ -737,7 +740,7 @@ namespace {
         // Never assume anything about values stored in TT
         ss->staticEval = eval = tte->eval();
         if (eval == VALUE_NONE)
-            ss->staticEval = eval = evaluate(pos, &complexity);
+            ss->staticEval = evaluate(pos, &complexity);
         else // Fall back to (semi)classical complexity for TT hits, the NNUE complexity is lost
             complexity = abs(ss->staticEval - pos.psq_eg_stm());
 
@@ -748,11 +751,11 @@ namespace {
     }
     else
     {
-        ss->staticEval = eval = evaluate(pos, &complexity);
+        ss->staticEval = evaluate(pos, &complexity);
 
         // Save static evaluation into transposition table
         if (!excludedMove)
-            tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
+            tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->staticEval);
     }
 
     thisThread->complexityAverage.update(complexity);
@@ -773,7 +776,18 @@ namespace {
                   :                                    175;
     improving = improvement > 0;
 
-    // Step 7. Razoring.
+    // Step 7a: verify static evals
+    if (eval == VALUE_NONE) // Fresh static evaluation was made, verify and store it
+    {
+        if (ss->staticEval <= alpha)
+            eval = qsearch<PvNode ? PV : NonPV>(pos, ss, alpha-1, alpha);
+        else if (PvNode && ss->staticEval < beta)
+            eval = qsearch<PV>(pos, ss, alpha, beta); // The large window is the most expensive surely?
+        else
+            eval = ss->staticEval;
+    }
+
+    // Step 7b. Razoring of static-or-TT evals.
     // If eval is really low check with qsearch if it can exceed alpha, if it can't,
     // return a fail low.
     if (   !PvNode
@@ -1463,8 +1477,8 @@ moves_loop: // When in check, search starts here
         else
             // In case of null move search use previous static eval with a different sign
             ss->staticEval = bestValue =
-            (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
-                                             : -(ss-1)->staticEval;
+            (ss-1)->currentMove == MOVE_NULL ? -(ss-1)->staticEval
+                                             : (ss->staticEval != VALUE_NONE ? ss->staticEval : evaluate(pos));
 
         // Stand pat. Return immediately if static value is at least beta
         if (bestValue >= beta)
