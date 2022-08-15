@@ -785,9 +785,9 @@ namespace {
             return value;
     }
     // Check if eval can quickly fail high
-    else if (PvNode && depth <= 6 && eval < beta && eval > (alpha + 3*beta)/4)
+    else if (PvNode && depth <= 8 && eval < beta && eval > (alpha + 3*beta)/4)
     {
-        eval = qsearch<PV>(pos, ss, eval - 200 + 6*depth*depth, beta); // Narrow the window, with some margin (more leafy = more margin)
+        eval = qsearch<PV>(pos, ss, eval - 384 + 6*depth*depth, beta); // Narrow the window, with some margin (more leafy = more margin)
         if (eval >= beta)
             return eval;
     }
