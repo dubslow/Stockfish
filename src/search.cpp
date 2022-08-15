@@ -785,7 +785,7 @@ namespace {
             return value;
     }
     // Check if eval can quickly fail high
-    else if (PvNode && depth <= 6 && eval < beta)
+    else if (depth <= 6 && eval < beta)
     {
         Value mid = (alpha+beta)/2;
         if (eval > mid)
