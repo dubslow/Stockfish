@@ -787,9 +787,9 @@ namespace {
     // Check if eval can quickly fail high
     else if (PvNode && depth <= 6 && eval < beta && eval > (alpha + 3*beta)/4)
     {
-        eval = qsearch<PV>(pos, ss, eval - 200 + 6*depth*depth, beta); // Narrow the window, with some margin (more leafy = more margin)
-        if (eval >= beta)
-            return eval;
+        value = qsearch<PV>(pos, ss, eval - 200 + 6*depth*depth, beta); // Narrow the window, with some margin (more leafy = more margin)
+        if (value >= beta)
+            return value;
     }
 
     // Step 8. Futility pruning: child node (~25 Elo).
