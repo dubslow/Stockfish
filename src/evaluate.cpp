@@ -1057,25 +1057,26 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   // In general we prefer NNUE evaluation, but in some cases the classical eval is superior (~3 Elo).
   // With low piece counts, always use NNUE; otherwise, if there is also a high PSQ-vs-simple-material
   // imbalance and little shuffling, switch back to classical.
-  bool useClassical = !useNNUE || ((pos.count<ALL_PIECES>() > 7)
-                      && 5 * abs(psq) > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count()));
+  bool useClassical = !useNNUE ||
+                      ((pos.count<ALL_PIECES>() > 7)
+                       && abs(psq) * 5 > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count()));
 
   if (useClassical)
       v = Evaluation<NO_TRACE>(pos).value();
-  else if (useNNUE)
+  else
   {
-       int nnueComplexity;
-       int scale = 1064 + 106 * pos.non_pawn_material() / 5120;
-       Value optimism = pos.this_thread()->optimism[stm];
+      int nnueComplexity;
+      int scale = 1064 + 106 * pos.non_pawn_material() / 5120;
+      Value optimism = pos.this_thread()->optimism[stm];
 
-       Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
-       // Blend nnue complexity with (semi)classical complexity
-       nnueComplexity = (104 * nnueComplexity + 131 * abs(nnue - psq)) / 256;
-       if (complexity) // Return hybrid NNUE complexity to caller
-           *complexity = nnueComplexity;
+      Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
+      // Blend nnue complexity with (semi)classical complexity
+      nnueComplexity = (104 * nnueComplexity + 131 * abs(nnue - psq)) / 256;
+      if (complexity) // Return hybrid NNUE complexity to caller
+          *complexity = nnueComplexity;
 
-       optimism = optimism * (269 + nnueComplexity) / 256;
-       v = (nnue * scale + optimism * (scale - 754)) / 1024;
+      optimism = optimism * (269 + nnueComplexity) / 256;
+      v = (nnue * scale + optimism * (scale - 754)) / 1024;
   }
 
   // Damp down the evaluation linearly when shuffling
@@ -1086,7 +1087,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
 
   // When not using NNUE, return classical complexity to caller
   if (complexity && (!useNNUE || useClassical))
-       *complexity = abs(v - psq);
+      *complexity = abs(v - psq);
 
   return v;
 }
@@ -1109,7 +1110,6 @@ std::string Eval::trace(Position& pos) {
   std::memset(scores, 0, sizeof(scores));
 
   // Reset any global variable used in eval
-  pos.this_thread()->depth           = 0;
   pos.this_thread()->trend           = SCORE_ZERO;
   pos.this_thread()->bestValue       = VALUE_ZERO;
   pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
