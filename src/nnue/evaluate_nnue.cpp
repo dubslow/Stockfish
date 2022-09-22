@@ -32,6 +32,20 @@
 
 #include "evaluate_nnue.h"
 
+int DPOS0=24, DPOS1=9560, DPOS2=2048, DPOS3, DPOS4, DPOS5, DPOS6, DPOS7, DPOS8, DPOS9;
+int DPSQ0=24, DPSQ1=9560, DPSQ2, DPSQ3, DPSQ4, DPSQ5, DPSQ6, DPSQ7, DPSQ8, DPSQ9;
+
+int dDPOS1 = DPOS1 == 0 ?(10000.0/float(DPOS1)),
+    dDPOS2 = (10000.0/float(DPOS2)),
+    dDPOS7 = (10000.0/float(DPOS7)),
+    dDPOS8 = (10000.0/float(DPOS8)),
+    dDPOS9 = (10000.0/float(DPOS9)),
+    dDPSQ1 = (10000.0/float(DPSQ1)),
+    dDPSQ2 = (10000.0/float(DPSQ2)),
+    dDPSQ7 = (10000.0/float(DPSQ7)),
+    dDPSQ8 = (10000.0/float(DPSQ8)),
+    dDPSQ9 = (10000.0/float(DPSQ9));
+
 namespace Stockfish::Eval::NNUE {
 
   // Input feature converter
@@ -143,7 +157,6 @@ namespace Stockfish::Eval::NNUE {
     // overaligning stack variables with alignas() doesn't work correctly.
 
     constexpr uint64_t alignment = CacheLineSize;
-    int delta = 24 - pos.non_pawn_material() / 9560;
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned[
@@ -164,9 +177,13 @@ namespace Stockfish::Eval::NNUE {
     if (complexity)
         *complexity = abs(psqt - positional) / OutputScale;
 
-    // Give more value to positional evaluation when adjusted flag is set
+    // When adjusted flag is set, tweak relative weights of psqt vs positional
     if (adjusted)
-        return static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional) / (1024 * OutputScale));
+    {
+        int deltaPos = DPOS0 - pos.non_pawn_material() / DPOS1 + pos.psq_eg_stm() / DPOS2 + DPOS3 * pos.count<PAWN>() + DPOS4 * abs(pos.count<PAWN>(WHITE) - pos.count<PAWN>(BLACK)) + DPOS5 * pos.rule50_count() + DPOS6 * pos.this_thread()->depth + pos.this_thread()->bestValue / DPOS7 + psqt / DPOS8 + positional / DPOS9;
+        int deltaPsq = DPSQ0 - pos.non_pawn_material() / DPSQ1 + pos.psq_eg_stm() / DPSQ2 + DPSQ3 * pos.count<PAWN>() + DPSQ4 * abs(pos.count<PAWN>(WHITE) - pos.count<PAWN>(BLACK)) + DPSQ5 * pos.rule50_count() + DPSQ6 * pos.this_thread()->depth + pos.this_thread()->bestValue / DPSQ7 + psqt / DPSQ8 + positional / DPSQ9;
+        return static_cast<Value>(((1024 - deltaPsq) * psqt + (1024 + deltaPos) * positional) / (1024 * OutputScale));
+    }
     else
         return static_cast<Value>((psqt + positional) / OutputScale);
   }
