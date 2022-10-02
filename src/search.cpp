@@ -785,9 +785,9 @@ namespace {
     else if (   PvNode && !ss->ttHit && depth <= 14
              && eval < beta && eval > (alpha + 3*beta)/4)
     {
-        eval = qsearch<PV>(pos, ss, eval, beta);
-        if (eval >= beta)
-            return eval;
+        value = qsearch<PV>(pos, ss, beta-1, beta);
+        if (value >= beta)
+            return value;
     }
 
     // Step 8. Futility pruning: child node (~25 Elo).
