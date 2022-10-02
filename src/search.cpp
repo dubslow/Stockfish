@@ -782,8 +782,8 @@ namespace {
             return value;
     }
     // Check if eval can quickly fail high
-    else if (   PvNode && !ss->ttHit && depth <= 14
-             && eval < beta && eval > (alpha + 3*beta)/4)
+    else if (   PvNode && depth <= 14
+             && (alpha + 3*beta)/4 < eval && eval < beta)
     {
         eval = qsearch<PV>(pos, ss, std::clamp(eval + -120 + 5*depth, alpha, beta-1), beta);
         if (eval >= beta)
