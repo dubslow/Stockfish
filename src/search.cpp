@@ -785,7 +785,7 @@ namespace {
     else if (   PvNode && !ss->ttHit && depth <= 14
              && eval < beta && eval > (alpha + 3*beta)/4)
     {
-        eval = qsearch<PV>(pos, ss, std::clamp(eval + -120 + 5*depth, alpha, beta-1), beta);
+        eval = qsearch<PV>(pos, ss, (alpha + 3*beta)/4, beta);
         if (eval >= beta)
             return eval;
     }
