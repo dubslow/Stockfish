@@ -515,8 +515,6 @@ void Thread::search() {
                 skill.best ? skill.best : skill.pick_best(multiPV)));
 }
 
-int D=14, AB=58, EC=-120, ES=5;
-
 namespace {
 
   // search<>() is the main search function for both PV and non-PV nodes
@@ -784,9 +782,10 @@ namespace {
             return value;
     }
     // Check if eval can quickly fail high
-    else if (PvNode && depth <= D && eval < beta && eval > ((128-AB)*alpha + (128+AB)*beta)/256)
+    else if (   PvNode && !ss->ttHit && depth <= 14
+             && eval < beta && eval > (alpha + 3*beta)/4)
     {
-        eval = qsearch<PV>(pos, ss, std::clamp(eval + EC + ES*depth, alpha, beta-1), beta); // Narrow the window, with some margin (more leafy = more margin)
+        eval = qsearch<PV>(pos, ss, std::clamp(eval + -120 + 5*depth, alpha, beta-1), beta);
         if (eval >= beta)
             return eval;
     }
