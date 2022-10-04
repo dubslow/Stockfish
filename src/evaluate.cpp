@@ -1044,6 +1044,9 @@ make_v:
 
 } // namespace Eval
 
+int C1=7, C2=1760;
+int E1=1064, E2=170, E3=269, E4=754;
+TUNE(C1, C2, E1, E2, E3, E4);
 
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
@@ -1053,28 +1056,29 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   Value v;
   Color stm = pos.side_to_move();
   Value psq = pos.psq_eg_stm();
+  int pieces = pos.count<ALL_PIECES>();
 
   // We use the much less accurate but faster Classical eval when the NNUE
   // option is set to false. Otherwise we use the NNUE eval unless the
   // PSQ advantage is decisive and several pieces remain (~3 Elo)
-  bool useClassical = !useNNUE || (pos.count<ALL_PIECES>() > 7 && abs(psq) > 1760);
+  bool useClassical = !useNNUE || (pieces > C1 && abs(psq) > C2);
   if (useClassical)
       v = Evaluation<NO_TRACE>(pos).value();
   else
   {
       int nnueComplexity;
-      int scale = 1064 + 106 * pos.non_pawn_material() / 5120;
+      int scale = E1 + E2 * pos.non_pawn_material() / 8192;
       Value optimism = pos.this_thread()->optimism[stm];
 
       Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
-      // Blend nnue complexity with (semi)classical complexity
-      nnueComplexity = (abs(nnue - psq) * optimism + nnueComplexity * pos.count<ALL_PIECES>()) / 1024;
+      // Blend nnue complexity with (semi)classical complexity plus crazy nonsense
+      nnueComplexity = (abs(nnue - psq) * optimism + nnueComplexity * pieces) / 1024;
       // nnueComplexity = (104 * nnueComplexity + 131 * abs(nnue - psq)) / 256;
       if (complexity) // Return hybrid NNUE complexity to caller
           *complexity = nnueComplexity;
 
-      optimism = optimism * (269 + nnueComplexity) / 256;
-      v = (nnue * scale + optimism * (scale - 754)) / 1024;
+      optimism = optimism * (E3 + nnueComplexity) / 256;
+      v = (nnue * scale + optimism * (scale - E4)) / 1024;
   }
 
   // Damp down the evaluation linearly when shuffling
