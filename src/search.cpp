@@ -255,7 +255,7 @@ void MainThread::search() {
 }
 
 
-int S1=156, S2=301, S3=1874, S4=23, S5=201, S6=26, S7=728;
+int S1=144, S2=422, S3=2086, S4=22, S5=209, S6=27, S7=489;
 
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
