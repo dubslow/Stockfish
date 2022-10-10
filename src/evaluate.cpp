@@ -1057,9 +1057,15 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   // We use the much less accurate but faster Classical eval when the NNUE
   // option is set to false. Otherwise we use the NNUE eval unless the
   // PSQ advantage is decisive and several pieces remain (~3 Elo)
-  bool useClassical = !useNNUE || (pos.count<ALL_PIECES>() > 7 && abs(psq) > 1760);
+  bool useClassical = !useNNUE || (
+                                   (pos.this_thread()->depth > 9 || pos.count<ALL_PIECES>() > 7)
+                                   && abs(psq) * 5 > (856 + pos.non_pawn_material() / 64) * (10 + pos.rule50_count())
+                                  );
   if (useClassical)
+  {
       v = Evaluation<NO_TRACE>(pos).value();
+      useClassical = abs(v) >= 297;
+  }
   else
   {
       int nnueComplexity;
@@ -1107,6 +1113,7 @@ std::string Eval::trace(Position& pos) {
   std::memset(scores, 0, sizeof(scores));
 
   // Reset any global variable used in eval
+  pos.this_thread()->depth = 0;
   pos.this_thread()->trend           = SCORE_ZERO;
   pos.this_thread()->bestValue       = VALUE_ZERO;
   pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
