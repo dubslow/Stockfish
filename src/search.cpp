@@ -782,11 +782,11 @@ namespace {
             return value;
     }
     // Check if eval can quickly fail high
-    else if (   PvNode && depth <= 14
-             && (alpha + 3*beta)/4 < eval && eval < beta)
+    else if (   depth <= 7
+             && eval > beta + 200 * depth)
     {
-        value = qsearch<PV>(pos, ss, beta-1, beta);
-        if (value >= beta)
+        value = qsearch<NonPV>(pos, ss, beta, eval+1);
+        if (value > eval)
             return value;
     }
 
