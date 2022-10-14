@@ -1133,7 +1133,7 @@ moves_loop: // When in check, search starts here
           && (   !ss->ttPv
               || !capture
               || (cutNode && (ss-1)->moveCount > 1)
-              || bestValue >= VALUE_TB_WIN_IN_MAX_PLY))
+              || bestValue >= VALUE_KNOWN_WIN))
       {
           Depth r = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
 
@@ -1172,8 +1172,8 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
-          if (bestValue >= VALUE_TB_WIN_IN_MAX_PLY)
-              r++;
+          if (bestValue >= VALUE_KNOWN_WIN)
+              r += 1 + (bestValue >= VALUE_TB_WIN_IN_MAX_PLY);
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
