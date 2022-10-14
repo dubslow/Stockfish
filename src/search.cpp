@@ -1173,7 +1173,7 @@ moves_loop: // When in check, search starts here
               r++;
 
           if (bestValue >= VALUE_KNOWN_WIN)
-              r += 1 + (bestValue >= VALUE_TB_WIN_IN_MAX_PLY);
+              r++;
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
