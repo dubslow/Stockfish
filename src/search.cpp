@@ -781,7 +781,7 @@ namespace {
             return value;
     }
     // Check if eval can quickly fail high
-    else if (eval < beta - 369 - 254 * depth * depth)
+    else if (eval < beta - 100 - complexity - 254 * depth * depth)
     {
         value = qsearch<NonPV>(pos, ss, beta-1, beta);
         if (value >= beta)
