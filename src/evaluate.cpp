@@ -1044,7 +1044,7 @@ make_v:
 
 } // namespace Eval
 
-int UC1=8, UC2=1416, EV1=1092, EV2=151, EV3=346, EV4=312, EV5=224, EV6=1077, EV7=169, EV8=286;
+int UC1=5, UC2=1660, EV1=991, EV2=144, EV3=309, EV4=372, EV5=245, EV6=736, EV7=188, EV8=216;
 
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
