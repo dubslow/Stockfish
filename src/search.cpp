@@ -781,8 +781,8 @@ namespace {
         if (value < alpha)
             return value;
     }
-    else if (eval < beta && complexity < 100 - 2*depth*depth)
-        return qsearch<NonPV>(pos, ss, alpha, beta);
+    else if (eval < beta && complexity < 80 - 2*depth*depth)
+        return eval;
     // Step 8. Futility pruning: child node (~25 Elo).
     // The depth condition is important for mate finding.
     else if (   eval >= beta
