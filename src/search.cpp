@@ -781,7 +781,8 @@ namespace {
         if (value < alpha)
             return value;
     }
-    else if (alpha < eval && eval < beta && abs(eval) < 1000 && complexity < 60 - 2*depth*depth)
+    else if (   is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture
+             && alpha < eval && eval < beta && complexity < 60 - 2*depth*depth)
         return eval;
     // Step 8. Futility pruning: child node (~25 Elo).
     // The depth condition is important for mate finding.
