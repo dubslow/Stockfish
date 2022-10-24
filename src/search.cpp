@@ -781,15 +781,15 @@ namespace {
         if (value < alpha)
             return value;
     }
-    else if (alpha < eval && eval < beta && complexity < 100 - 2*depth*depth)
+    else if (alpha < eval && eval < beta && complexity < 100 - 3*depth*depth)
         return eval;
     // Step 8. Futility pruning: child node (~25 Elo).
     // The depth condition is important for mate finding.
     else if (   eval >= beta
-             && !ss->ttPv
-             && depth < 8
-             && eval - futility_margin(depth, improving) - (ss-1)->statScore / 303 >= beta
-             &&  eval < 28031) // larger than VALUE_KNOWN_WIN, but smaller than TB wins
+        && !ss->ttPv
+        &&  depth < 8
+        &&  eval - futility_margin(depth, improving) - (ss-1)->statScore / 303 >= beta
+        &&  eval < 28031) // larger than VALUE_KNOWN_WIN, but smaller than TB wins
         return eval;
 
     // Step 9. Null move search with verification search (~22 Elo)
