@@ -775,12 +775,16 @@ namespace {
     // Step 7. Razoring.
     // If eval is really low check with qsearch if it can exceed alpha, if it can't,
     // return a fail low.
-    if (   is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture
-        && eval < alpha - 369 - 254 * depth * depth)
+    if (eval < alpha - 369 - 254 * depth * depth)
     {
-        value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
-        if (value < alpha)
-            return value;
+        if (is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture)
+        {
+            value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
+            if (value < alpha)
+                return value;
+        }
+        else
+            return eval;
     }
 
     // Step 8. Futility pruning: child node (~25 Elo).
