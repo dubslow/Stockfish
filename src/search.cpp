@@ -775,7 +775,8 @@ namespace {
     // Step 7. Razoring.
     // If eval is really low check with qsearch if it can exceed alpha, if it can't,
     // return a fail low.
-    if (eval < alpha - 369 - 254 * depth * depth)
+    if (   is_ok((ss-1)->currentMove) && !(ss-1)->inCheck && !priorCapture
+        && eval < alpha - 369 - 254 * depth * depth)
     {
         value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
         if (value < alpha)
