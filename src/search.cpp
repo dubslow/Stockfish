@@ -781,7 +781,7 @@ namespace {
         if (value < alpha)
             return value;
     }
-    else if (alpha < eval && eval < beta && complexity < 60 - 2*depth*depth)
+    else if (alpha < eval && eval < beta && complexity < 40 - 2*depth*depth)
     {
         value = qsearch<NonPV>(pos, ss, alpha, beta);
         if (alpha < value && value < beta)
