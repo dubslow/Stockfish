@@ -980,6 +980,57 @@ moves_loop: // When in check, search starts here
 
       Value delta = beta - alpha;
 
+      Depth r = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
+
+      // Decrease reduction if position is or has been on the PV
+      // and node is not likely to fail low. (~3 Elo)
+      if (   ss->ttPv
+          && !likelyFailLow)
+          r -= 2;
+
+      // Decrease reduction if opponent's move count is high (~1 Elo)
+      if ((ss-1)->moveCount > 7)
+          r--;
+
+      // Increase reduction for cut nodes (~3 Elo)
+      if (cutNode)
+          r += 2;
+
+      // Increase reduction if ttMove is a capture (~3 Elo)
+      if (ttCapture)
+          r++;
+
+      // Decrease reduction for PvNodes based on depth
+      if (PvNode)
+          r -= 1 + 11 / (3 + depth);
+
+      // Decrease reduction if ttMove has been singularly extended (~1 Elo)
+      if (singularQuietLMR)
+          r--;
+
+      // Decrease reduction if we move a threatened piece (~1 Elo)
+      if (   depth > 9
+          && (mp.threatenedPieces & from_sq(move)))
+          r--;
+
+      // Increase reduction if next ply has a lot of fail high
+      if ((ss+1)->cutoffCnt > 3)
+          r++;
+
+      ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
+                     + (*contHist[0])[movedPiece][to_sq(move)]
+                     + (*contHist[1])[movedPiece][to_sq(move)]
+                     + (*contHist[3])[movedPiece][to_sq(move)]
+                     - 4433;
+
+      // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
+      r -= ss->statScore / (13000 + 4152 * (depth > 7 && depth < 19));
+
+      // In general we want to cap the LMR depth search at newDepth, but when
+      // reduction is negative, we allow this move a limited search extension
+      // beyond the first move depth. This may lead to hidden double extensions.
+      Depth lmrDepth = std::clamp(newDepth - r, 1, newDepth + 1);
+
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
           && pos.non_pawn_material(us)
@@ -987,9 +1038,6 @@ moves_loop: // When in check, search starts here
       {
           // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold (~7 Elo)
           moveCountPruning = moveCount >= futility_move_count(improving, depth);
-
-          // Reduced depth of the next LMR search
-          int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount, delta, thisThread->rootDelta), 0);
 
           if (   capture
               || givesCheck)
@@ -1104,7 +1152,7 @@ moves_loop: // When in check, search starts here
       }
 
       // Add extension to new depth
-      newDepth += extension;
+      newDepth += extension; lmrDepth += extension;
       ss->doubleExtensions = (ss-1)->doubleExtensions + (extension == 2);
 
       // Speculative prefetch as early as possible
@@ -1120,52 +1168,6 @@ moves_loop: // When in check, search starts here
       // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
-      Depth r = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
-
-      // Decrease reduction if position is or has been on the PV
-      // and node is not likely to fail low. (~3 Elo)
-      if (   ss->ttPv
-          && !likelyFailLow)
-          r -= 2;
-
-      // Decrease reduction if opponent's move count is high (~1 Elo)
-      if ((ss-1)->moveCount > 7)
-          r--;
-
-      // Increase reduction for cut nodes (~3 Elo)
-      if (cutNode)
-          r += 2;
-
-      // Increase reduction if ttMove is a capture (~3 Elo)
-      if (ttCapture)
-          r++;
-
-      // Decrease reduction for PvNodes based on depth
-      if (PvNode)
-          r -= 1 + 11 / (3 + depth);
-
-      // Decrease reduction if ttMove has been singularly extended (~1 Elo)
-      if (singularQuietLMR)
-          r--;
-
-      // Decrease reduction if we move a threatened piece (~1 Elo)
-      if (   depth > 9
-          && (mp.threatenedPieces & from_sq(move)))
-          r--;
-
-      // Increase reduction if next ply has a lot of fail high
-      if ((ss+1)->cutoffCnt > 3)
-          r++;
-
-      ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[movedPiece][to_sq(move)]
-                     + (*contHist[1])[movedPiece][to_sq(move)]
-                     + (*contHist[3])[movedPiece][to_sq(move)]
-                     - 4433;
-
-      // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-      r -= ss->statScore / (13000 + 4152 * (depth > 7 && depth < 19));
-
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
@@ -1176,19 +1178,14 @@ moves_loop: // When in check, search starts here
               || !capture
               || (cutNode && (ss-1)->moveCount > 1)))
       {
-          // In general we want to cap the LMR depth search at newDepth, but when
-          // reduction is negative, we allow this move a limited search extension
-          // beyond the first move depth. This may lead to hidden double extensions.
-          Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
-
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, lmrDepth, true);
 
           // Do full depth search when reduced LMR search fails high
-          if (value > alpha && d < newDepth)
+          if (value > alpha && lmrDepth < newDepth)
           {
               // Adjust full depth search based on LMR results - if result
               // was good enough search deeper, if it was bad enough search shallower
-              const bool doDeeperSearch = value > (alpha + 64 + 11 * (newDepth - d));
+              const bool doDeeperSearch = value > (alpha + 64 + 11 * (newDepth - lmrDepth));
               const bool doEvenDeeperSearch = value > alpha + 582 && ss->doubleExtensions <= 5;
               const bool doShallowerSearch = value < bestValue + newDepth;
 
@@ -1196,7 +1193,7 @@ moves_loop: // When in check, search starts here
 
               newDepth += doDeeperSearch - doShallowerSearch + doEvenDeeperSearch;
 
-              if (newDepth > d)
+              if (newDepth > lmrDepth)
                   value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
 
               int bonus = value > alpha ?  stat_bonus(newDepth)
