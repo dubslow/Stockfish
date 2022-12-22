@@ -747,8 +747,8 @@ help:
 	@echo "Supported targets:"
 	@echo ""
 	@echo "help                    > Display architecture details"
-	@echo "profile-build           > standard build with profile-guided optimization"
-	@echo "build                   > skip profile-guided optimization"
+	@echo "profile-build           > use profilng to build fastest executable"
+	@echo "build                   > build basic executable"
 	@echo "net                     > Download the default nnue net"
 	@echo "strip                   > Strip executable"
 	@echo "install                 > Install executable"
@@ -800,6 +800,9 @@ help:
 	@echo "make -j profile-build ARCH=x86-64-bmi2"
 	@echo "make -j profile-build ARCH=x86-64-bmi2 COMP=gcc COMPCXX=g++-9.0"
 	@echo "make -j build ARCH=x86-64-ssse3 COMP=clang"
+	@echo ""
+	@echo "Note that profile-build performs two complete compiles, ignoring existing objects,
+	@echo "while build only compiles once, reusing existing objects.
 	@echo ""
 	@echo "-------------------------------"
 ifeq ($(SUPPORTED_ARCH)$(help_skip_sanity), true)
