@@ -509,7 +509,7 @@ void Thread::search() {
                 skill.best ? skill.best : skill.pick_best(multiPV)));
 }
 
-int A=4, B=214, C=272, D=241, E=4, F=4591, G=11, H=122, I=196, J=76, K=29, L=18;
+int A=4, B=204, C=305, D=252, E=4, F=5242, G=11, H=125, I=183, J=78, K=28, L=19;
 
 namespace {
 
