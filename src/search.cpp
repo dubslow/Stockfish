@@ -509,6 +509,8 @@ void Thread::search() {
                 skill.best ? skill.best : skill.pick_best(multiPV)));
 }
 
+int A=5, B=180, C=251, D=222, E=4, F=3875, G=10, H=106, I=185, J=52, K=28, L=20;
+TUNE(A,B,C,D,E,F,G,H,I,J,K,L);
 
 namespace {
 
@@ -1045,14 +1047,14 @@ moves_loop: // When in check, search starts here
               // Futility pruning for captures (~0 Elo)
               if (   !givesCheck
                   && !PvNode
-                  && lmrDepth < 5
+                  && lmrDepth < A
                   && !ss->inCheck
-                  && ss->staticEval + 180 + 251 * lmrDepth + PieceValue[EG][pos.piece_on(to_sq(move))]
+                  && ss->staticEval + B + C * lmrDepth + PieceValue[EG][pos.piece_on(to_sq(move))]
                    + captureHistory[movedPiece][to_sq(move)][type_of(pos.piece_on(to_sq(move)))] / 6 < alpha)
                   continue;
 
               // SEE based pruning (~9 Elo)
-              if (!pos.see_ge(move, Value(-222) * depth))
+              if (!pos.see_ge(move, Value(-D) * depth))
                   continue;
           }
           else
@@ -1062,20 +1064,20 @@ moves_loop: // When in check, search starts here
                             + (*contHist[3])[movedPiece][to_sq(move)];
 
               // Continuation history based pruning (~2 Elo)
-              if (   lmrDepth < 4
-                  && history < -3875 * (depth - 1))
+              if (   lmrDepth < E
+                  && history < -F * (depth - 1))
                   continue;
 
               history += 2 * thisThread->mainHistory[us][from_to(move)];
 
               // Futility pruning: parent node (~9 Elo)
               if (   !ss->inCheck
-                  && lmrDepth < 10
-                  && ss->staticEval + 106 + 185 * lmrDepth + history / 52 <= alpha)
+                  && lmrDepth < G
+                  && ss->staticEval + H + I * lmrDepth + history / J <= alpha)
                   continue;
 
               // Prune moves with negative SEE (~3 Elo)
-              if (!pos.see_ge(move, Value(-28 * lmrDepth * lmrDepth - 20 * lmrDepth)))
+              if (!pos.see_ge(move, Value(-K * lmrDepth * lmrDepth - L * lmrDepth)))
                   continue;
           }
       }
