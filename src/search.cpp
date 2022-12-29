@@ -1117,9 +1117,8 @@ moves_loop: // When in check, search starts here
 
       // Decrease reduction if position is or has been on the PV
       // and node is not likely to fail low. (~3 Elo)
-      if (   ss->ttPv
-          && !(ttMove && (tte->bound() & BOUND_UPPER) && tte->depth() >= depth))
-          r -= 2;
+      if (!(ttMove && (tte->bound() & BOUND_UPPER) && tte->depth() >= depth))
+          r -= (ss->ttPv) + (PvNode || cutNode);
 
       // Decrease reduction if opponent's move count is high (~1 Elo)
       if ((ss-1)->moveCount > 7)
