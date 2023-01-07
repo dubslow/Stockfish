@@ -46,6 +46,7 @@ struct StateInfo {
   int    castlingRights;
   int    rule50;
   int    pliesFromNull;
+  int    repetitionCount;
   Square epSquare;
 
   // Not copied when making a move (will be recomputed anyhow)
@@ -160,6 +161,7 @@ public:
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
   int rule50_count() const;
+  int repetition_count() const;
   Score psq_score() const;
   Value psq_eg_stm() const;
   Value non_pawn_material(Color c) const;
@@ -369,6 +371,10 @@ inline int Position::game_ply() const {
 
 inline int Position::rule50_count() const {
   return st->rule50;
+}
+
+inline int Position::repetition_count() const {
+  return st->repetitionCount;
 }
 
 inline bool Position::opposite_bishops() const {

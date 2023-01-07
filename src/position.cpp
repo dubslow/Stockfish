@@ -775,6 +775,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       // Reset rule 50 counter
       st->rule50 = 0;
+      st->repetitionCount = 0;
   }
 
   // Update hash key
@@ -854,6 +855,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       // Reset rule 50 draw counter
       st->rule50 = 0;
+      st->repetitionCount = 0;
   }
 
   // Set capture piece
@@ -884,6 +886,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           if (stp->key == st->key)
           {
               st->repetition = stp->repetition ? -i : i;
+              st->repetitionCount++;
               break;
           }
       }
