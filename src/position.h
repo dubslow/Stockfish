@@ -46,7 +46,6 @@ struct StateInfo {
   int    castlingRights;
   int    rule50;
   int    pliesFromNull;
-  int    repetitionCount;
   Square epSquare;
 
   // Not copied when making a move (will be recomputed anyhow)
@@ -371,10 +370,6 @@ inline int Position::game_ply() const {
 
 inline int Position::rule50_count() const {
   return st->rule50;
-}
-
-inline int Position::repetition_count() const {
-  return st->repetitionCount;
 }
 
 inline bool Position::opposite_bishops() const {
