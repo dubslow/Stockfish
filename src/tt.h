@@ -41,15 +41,17 @@ struct TTEntry {
   Value value() const { return (Value)value16; }
   Value eval()  const { return (Value)eval16; }
   Depth depth() const { return (Depth)depth8 + DEPTH_OFFSET; }
+  int rule50() const { return (int) rule50_8; }
   bool is_pv()  const { return (bool)(genBound8 & 0x4); }
   Bound bound() const { return (Bound)(genBound8 & 0x3); }
-  void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
+  void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, int rule50);
 
 private:
   friend class TranspositionTable;
 
   uint16_t key16;
   uint8_t  depth8;
+  uint8_t  rule50_8;
   uint8_t  genBound8;
   uint16_t move16;
   int16_t  value16;
@@ -65,14 +67,14 @@ private:
 
 class TranspositionTable {
 
-  static constexpr int ClusterSize = 3;
+  static constexpr int ClusterSize = 5;
 
   struct Cluster {
     TTEntry entry[ClusterSize];
-    char padding[2]; // Pad to 32 bytes
+    char padding[4]; // Pad to 32 bytes
   };
 
-  static_assert(sizeof(Cluster) == 32, "Unexpected Cluster size");
+  static_assert(sizeof(Cluster) == 64, "Unexpected Cluster size");
 
   // Constants used to refresh the hash table periodically
   static constexpr unsigned GENERATION_BITS  = 3;                                // nb of bits reserved for other things
