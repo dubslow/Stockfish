@@ -662,7 +662,7 @@ namespace {
         // For high rule50 counts don't produce transposition table cutoffs.
         int rule50 = pos.rule50_count();
         int tte_rule50 = tte->rule50();
-        if (rule50 <= tte_rule50 || tte_rule50 < 80)
+        if (rule50 <= tte_rule50 || tte_rule50 < 90)
             return ttValue;
         else
             return ttValue * (50 - (rule50 - tte_rule50)) / 54;

@@ -160,7 +160,6 @@ public:
   bool has_game_cycle(int ply) const;
   bool has_repeated() const;
   int rule50_count() const;
-  int repetition_count() const;
   Score psq_score() const;
   Value psq_eg_stm() const;
   Value non_pawn_material(Color c) const;
