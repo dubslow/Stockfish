@@ -1053,8 +1053,9 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
+              bool predictNonSing = (ss->cutoffCnt >  2); // sscC is correlated with nonsingularity (using dbg_mean, about 60% vs 45% at depth 25)
               Value singularBeta = ttValue - (3 + (ss->ttPv && !PvNode)) * depth;
-              Depth singularDepth = (depth - 1) / 2;
+              Depth singularDepth = (depth - 1) / 2 - predictNonSing;
 
               ss->excludedMove = move;
               value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
