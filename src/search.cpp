@@ -1071,6 +1071,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
+              bool predictNonSing = (ss->cutoffCnt > 2); // sscC is correlated with nonsingularity (using dbg_mean, about 60% vs 45% at depth 25)
               Value singularBeta = ttValue - (2 + (ss->ttPv && !PvNode)) * depth;
               Depth singularDepth = (depth - 1) / 2;
 
@@ -1086,7 +1087,7 @@ moves_loop: // When in check, search starts here
 
                   // Avoid search explosion by limiting the number of double extensions
                   if (  !PvNode
-                      && value < singularBeta - 25
+                      && value < singularBeta - 25 - 70*predictNonSing
                       && ss->doubleExtensions <= 10)
                   {
                       extension = 2;
