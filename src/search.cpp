@@ -1044,6 +1044,7 @@ moves_loop: // When in check, search starts here
           // then that move is singular and should be extended. To verify this we do
           // a reduced search on all the other moves but the ttMove and if the
           // result is lower than ttValue minus a margin, then we will extend the ttMove.
+          bool predictNonSing = (ss->cutoffCnt >  2); // sscC is correlated with nonsingularity (using dbg_mean, about 60% vs 45% at depth 25)
           if (   !rootNode
               &&  depth >= 4 - (thisThread->previousDepth > 24) + 2 * (PvNode && tte->is_pv())
               &&  move == ttMove
@@ -1051,11 +1052,10 @@ moves_loop: // When in check, search starts here
            /* &&  ttValue != VALUE_NONE Already implicit in the next condition */
               &&  abs(ttValue) < VALUE_KNOWN_WIN
               && (tte->bound() & BOUND_LOWER)
-              &&  tte->depth() >= depth - 3)
+              &&  tte->depth() >= depth - 3 + 2*predictNonSing)
           {
-              bool predictNonSing = (ss->cutoffCnt >  2); // sscC is correlated with nonsingularity (using dbg_mean, about 60% vs 45% at depth 25)
               Value singularBeta = ttValue - (3 + (ss->ttPv && !PvNode)) * depth;
-              Depth singularDepth = std::max((depth - 1) / 2 - predictNonSing, 1);
+              Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
               value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
