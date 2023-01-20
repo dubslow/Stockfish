@@ -1207,7 +1207,7 @@ moves_loop: // When in check, search starts here
                                         : -stat_bonus(newDepth);
           }
           else if (!(value > alpha)) // If LMR "succeeded", penalize the move
-              bonus = -d;
+              bonus = -(d+1)/2;
 
           if (capture)
               bonus /= 6;
