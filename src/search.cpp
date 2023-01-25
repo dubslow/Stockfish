@@ -557,7 +557,7 @@ namespace {
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
-    bool givesCheck, improving, priorCapture, singularQuietLMR;
+    bool givesCheck, improving, priorCapture, ttSingular;
     bool capture, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
@@ -937,7 +937,7 @@ moves_loop: // When in check, search starts here
                                       ss->killers);
 
     value = bestValue;
-    moveCountPruning = singularQuietLMR = false;
+    moveCountPruning = ttSingular = false;
 
     // Indicate PvNodes that will probably fail low if the node was searched
     // at a depth equal or greater than the current depth, and the result of this search was a fail low.
@@ -1071,16 +1071,13 @@ moves_loop: // When in check, search starts here
               if (value < singularBeta)
               {
                   extension = 1;
-                  singularQuietLMR = !ttCapture;
+                  ttSingular = true;
 
                   // Avoid search explosion by limiting the number of double extensions
                   if (  !PvNode
                       && value < singularBeta - 25
                       && ss->doubleExtensions <= 10)
-                  {
                       extension = 2;
-                      depth += depth < 12;
-                  }
               }
 
               // Multi-cut pruning
@@ -1155,8 +1152,8 @@ moves_loop: // When in check, search starts here
       if (PvNode)
           r -= 1 + 11 / (3 + depth);
 
-      // Decrease reduction if ttMove has been singularly extended (~1 Elo)
-      if (singularQuietLMR)
+      // Decrease reduction if ttMove is singular and quiet-or-nonfailhigh (~1 Elo)
+      if (ttSingular && (!ttCapture || move != ttMove))
           r--;
 
       // Decrease reduction if we move a threatened piece (~1 Elo)
