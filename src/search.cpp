@@ -1157,7 +1157,7 @@ moves_loop: // When in check, search starts here
 
       // Decrease reduction if ttMove has been singularly extended (~1 Elo)
       if (singularQuietLMR)
-          r -= (!ttCapture || move != ttMove);
+          r -= (!ttCapture) + (move != ttMove);
 
       // Decrease reduction if we move a threatened piece (~1 Elo)
       if (   depth > 9
