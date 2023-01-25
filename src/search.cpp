@@ -981,7 +981,7 @@ moves_loop: // When in check, search starts here
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
 
-      // Calculate new depth for this move
+      // Calculate new depth for this move, modifying `depth` only affects subsequent iters of the move loop
       newDepth = depth - 1;
 
       Value delta = beta - alpha;
@@ -1340,9 +1340,9 @@ moves_loop: // When in check, search starts here
           else if (!capture && quietCount < 64)
               quietsSearched[quietCount++] = move;
       }
-    }
+    } // End of the move loop!
 
-    // The following condition would detect a stop only after move loop has been
+    // The following condition would detect a stop only after the move loop has been
     // completed. But in this case bestValue is valid because we have fully
     // searched our subtree, and we can anyhow save the result in TT.
     /*
