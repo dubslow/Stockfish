@@ -1082,22 +1082,19 @@ moves_loop: // When in check, search starts here
                       depth += depth < 12;
                   }
               }
+              else // Our suspected singular move is in fact closer than thought to the alternatives
+              {
+                  // Multi-cut pruning
+                  // Our ttMove is assumed to fail high, and now we failed high also on a reduced
+                  // search without the ttMove. So we assume this expected Cut-node is not singular,
+                  // that multiple moves fail high, and we can prune the whole subtree by returning
+                  // a soft bound.
+                  if (singularBeta >= beta)
+                      return singularBeta;
 
-              // Multi-cut pruning
-              // Our ttMove is assumed to fail high, and now we failed high also on a reduced
-              // search without the ttMove. So we assume this expected Cut-node is not singular,
-              // that multiple moves fail high, and we can prune the whole subtree by returning
-              // a soft bound.
-              else if (singularBeta >= beta)
-                  return singularBeta;
-
-              // If the eval of ttMove is greater than beta, we reduce it (negative extension)
-              else if (ttValue >= beta)
-                  extension = -2;
-
-              // If the eval of ttMove is less than alpha and value, we reduce it (negative extension)
-              else if (ttValue <= alpha && ttValue <= value)
-                  extension = -1;
+                  // The alternatives aren't great, which implies that the ttmove isn't great. Reduce!
+                  extension = -1 - (ttValue >= beta);
+              }
           }
 
           // Check extensions (~1 Elo)
