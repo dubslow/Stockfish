@@ -1077,10 +1077,7 @@ moves_loop: // When in check, search starts here
                   if (  !PvNode
                       && value < singularBeta - 25
                       && ss->doubleExtensions <= 10)
-                  {
                       extension = 2;
-                      depth += depth < 12;
-                  }
               }
 
               // Multi-cut pruning
@@ -1157,7 +1154,7 @@ moves_loop: // When in check, search starts here
 
       // Decrease reduction if ttMove has been singularly extended (~1 Elo)
       if (singularQuietLMR)
-          r -= (!ttCapture) + (move != ttMove);
+          r -= (!ttCapture) + 2 * (move != ttMove);
 
       // Decrease reduction if we move a threatened piece (~1 Elo)
       if (   depth > 9
