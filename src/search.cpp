@@ -1156,13 +1156,8 @@ moves_loop: // When in check, search starts here
           r -= 1 + 11 / (3 + depth);
 
       // Decrease reduction if ttMove is singular and quiet-or-nonfailhigh (~1 Elo)
-      if (ttSingular)
-      {
-          if (!ttCapture)
-              r--;
-          else if (move != ttMove)
-              r -= 1 + ttSingularDouble;
-      }
+      if (ttSingular && (!ttCapture || move != ttMove))
+          r -= 1 + ttSingularDouble;
 
       // Decrease reduction if we move a threatened piece (~1 Elo)
       if (   depth > 9
