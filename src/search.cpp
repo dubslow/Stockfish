@@ -557,7 +557,7 @@ namespace {
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
-    bool givesCheck, improving, priorCapture, ttSingular;
+    bool givesCheck, improving, priorCapture, ttSingular, ttSingularDouble;
     bool capture, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
@@ -937,7 +937,7 @@ moves_loop: // When in check, search starts here
                                       ss->killers);
 
     value = bestValue;
-    moveCountPruning = ttSingular = false;
+    moveCountPruning = ttSingular = ttSingularDouble = false;
 
     // Indicate PvNodes that will probably fail low if the node was searched
     // at a depth equal or greater than the current depth, and the result of this search was a fail low.
@@ -1077,7 +1077,10 @@ moves_loop: // When in check, search starts here
                   if (  !PvNode
                       && value < singularBeta - 25
                       && ss->doubleExtensions <= 10)
+                  {
                       extension = 2;
+                      ttSingularDouble = true;
+                  }
               }
 
               // Multi-cut pruning
@@ -1153,8 +1156,13 @@ moves_loop: // When in check, search starts here
           r -= 1 + 11 / (3 + depth);
 
       // Decrease reduction if ttMove is singular and quiet-or-nonfailhigh (~1 Elo)
-      if (ttSingular && (!ttCapture || move != ttMove))
-          r--;
+      if (ttSingular)
+      {
+          if (!ttCapture)
+              r--;
+          else if (move != ttMove)
+              r -= 1 + ttSingularDouble;
+      }
 
       // Decrease reduction if we move a threatened piece (~1 Elo)
       if (   depth > 9
