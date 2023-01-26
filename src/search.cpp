@@ -512,7 +512,13 @@ void Thread::search() {
                 skill.best ? skill.best : skill.pick_best(multiPV)));
 }
 
-int C=26, D1=88, D2=2, P2=9, P1=10;
+int C=208, D1=5632, D2=16, D3=8, P2=91, P1=819;
+TUNE(SetRange(-256,     512),  C); // effectively (-2, 4)
+TUNE(SetRange(    0, 5632*4), D1); // 88/(2+d) *8 == 5632/(16+8d)
+TUNE(SetRange(    1,     80), D2);
+TUNE(SetRange(    1,     16), D3);
+TUNE(SetRange(    1,   91*3), P2); // (x/9+1)x/10 *8 =~ (91x+819)x/1024, which is more tunable
+TUNE(SetRange(    1,  819*3), P1);
 
 namespace {
 
@@ -1158,7 +1164,7 @@ moves_loop: // When in check, search starts here
 
       // Decrease reduction for PvNodes based on depth
       if (PvNode)
-          r -= (C + D1 / (D2 + depth) + (ss->ply / P2 + 1) * ss->ply / P1) / 16; // x^2/b + x/a = (x*(a/b) + 1) * x/a
+          r -= (C + D1 / (D2 + D3 * depth) + ((P2 * ss->ply + P1) * ss->ply) / 1024) / 128; // x^2/b + x/a = (x*(a/b) + 1) * x/a, but we need tunable numerators
 
       // Decrease reduction if ttMove has been singularly extended (~1 Elo)
       if (singularQuietLMR)
