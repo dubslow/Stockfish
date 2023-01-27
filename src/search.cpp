@@ -1147,6 +1147,9 @@ moves_loop: // When in check, search starts here
       if (ttCapture)
           r++;
 
+      if (!ss->inCheck && (complexity + thisThread->complexityAverage.value() < 256))
+          r++;
+
       // Decrease reduction for PvNodes based on depth
       if (PvNode)
           r -= 1 + 11 / (3 + depth);
