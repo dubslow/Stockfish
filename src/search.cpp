@@ -1028,7 +1028,7 @@ moves_loop: // When in check, search starts here
               // Futility pruning: parent node (~13 Elo)
               if (   !ss->inCheck
                   && lmrDepth < 13
-                  && ss->staticEval + 103 + 136 * lmrDepth <= alpha)
+                  && ss->staticEval + 103 + 136 * lmrDepth - improvement / 14 <= alpha)
                   continue;
 
               lmrDepth = std::max(lmrDepth, 0);
