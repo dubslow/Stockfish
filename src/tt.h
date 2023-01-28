@@ -34,6 +34,10 @@ namespace Stockfish {
 /// move       16 bit
 /// value      16 bit
 /// eval value 16 bit
+///
+/// The generation is used to compare the age of different entries. The generation,
+/// pv and bound bits are all stored in a single uint8_t, the generation being the
+/// higher bits, and the others the lower bits. See below for more on the generation.
 
 struct TTEntry {
 
@@ -74,15 +78,41 @@ class TranspositionTable {
 
   static_assert(sizeof(Cluster) == 32, "Unexpected Cluster size");
 
-  // Constants used to refresh the hash table periodically
-  static constexpr unsigned GENERATION_BITS  = 3;                                // nb of bits reserved for other things
-  static constexpr int      GENERATION_DELTA = (1 << GENERATION_BITS);           // increment for generation field
-  static constexpr int      GENERATION_CYCLE = 255 + (1 << GENERATION_BITS);     // cycle length
-  static constexpr int      GENERATION_MASK  = (0xFF << GENERATION_BITS) & 0xFF; // mask to pull out generation number
+  // These constants are used to manipulate the 5 generation bits, controlling
+  // the age of entries. With 5 bits, we can record up to 32 generations.
+  // The global TT.generation8 (see below) tracks the current generation. The
+  // generation is incremented by `MainThread::search()`, i.e. once for every
+  // `go` command, allowing overflows. We *assume* that all TTEntries have been
+  // set/hit within the last 32 generations, thus an entry's age is essentially
+  // `TT.generation8 - (TTE.genBound8 & GENERATION_MASK)` (plus adjusting for the
+  // overflows). Theoretically, if an entry survives unhit for 33 consecutive `go`
+  // commands (33 moves in a game), it would then appear to be only 1 generation old.
+  static constexpr unsigned GENERATION_NONBITS = 3;                       // nb of bits reserved for other things
+  static constexpr uint8_t  GENERATION_INCR    = 1 << GENERATION_NONBITS; // increment the generation field, preserving the nongen bits
+  static constexpr uint8_t  GENERATION_NONMASK = GENERATION_INCR - 1;     // retrieve nongeneration bits
+  static constexpr uint8_t  GENERATION_MASK    = ~GENERATION_NONMASK;     // retrieve generation bits
+  // To account for overflow, where the numeric value of `TTE.genBound8` is greater
+  // than `TT.generation8`, we add an extra bit "above" `TT.generation8` (more
+  // than 8 bits!) for the subtraction to borrow from and give a positive result.
+  // If `generation8` was larger, then the extra bit remains but we can just mask
+  // it away. Said another way, we do the subtraction modulo 32.
+  // We must also account for the nongen bits of `genBound8` in the subtraction.
+  // One could simply subtract `genBound8 & GEN_MASK` as above, but we can save
+  // that extra runtime operation by instead setting the minuend nongen bits to
+  // 1 at compiletime. That guarantees the subtraction won't borrow from the gen
+  // bits, and we already mask out these low bits anyways as part of the modulo.
+  static constexpr uint16_t GENERATION_MODULUS = (uint16_t(GENERATION_MASK) + GENERATION_INCR) | GENERATION_NONMASK;
+  inline uint8_t GENERATION_AGE_BY8(uint8_t TTEgenBound8) const
+  { // Note that we leave the numeric age in the upper bits, (age) << (GENERATION_NONBITS),
+    // so that the numeric result is 8*age, which is key to the replacement algorithm.
+    // It is also key, per above, that the sum happens before the difference.
+    return ((GENERATION_MODULUS + generation8) - TTEgenBound8) & GENERATION_MASK;
+  } // Example: TT.gen is 3, tte.gen is 31, then modulus+gen8 is 0b 1 00011 111, and
+    // genbound8 is 0b 11111 xxx, and the difference is 0b 0 00100 yyy --> age is 4.
 
 public:
  ~TranspositionTable() { aligned_large_pages_free(table); }
-  void new_search() { generation8 += GENERATION_DELTA; } // Lower bits are used for other things
+  void new_search() { generation8 += GENERATION_INCR; } // Preserve the lower bits as 0
   TTEntry* probe(const Key key, bool& found) const;
   int hashfull() const;
   void resize(size_t mbSize);
@@ -95,9 +125,11 @@ public:
 private:
   friend struct TTEntry;
 
+  // `sizeof(generation8) == sizeof(TTEntry.genBound8)` must hold.
+  uint8_t generation8 = 0; // We rely on the lowest GENERATION_NONBITS always being 0.
+
   size_t clusterCount;
   Cluster* table;
-  uint8_t generation8; // Size must be not bigger than TTEntry::genBound8
 };
 
 extern TranspositionTable TT;

@@ -113,9 +113,9 @@ void TranspositionTable::clear() {
 /// TranspositionTable::probe() looks up the current position in the transposition
 /// table. It returns true and a pointer to the TTEntry if the position is found.
 /// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry
-/// to be replaced later. The replace value of an entry is calculated as its depth
-/// minus 8 times its relative age. TTEntry t1 is considered more valuable than
-/// TTEntry t2 if its replace value is greater than that of t2.
+/// to be replaced later. The value of an entry is calculated as its depth minus
+/// 8 times its age, where age is how many `go` commands ago the entry was set/hit.
+/// If an entry t2 has a higher value than entry t1, then we replace t1 with t2.
 
 TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
 
@@ -125,21 +125,18 @@ TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
   for (int i = 0; i < ClusterSize; ++i)
       if (tte[i].key16 == key16 || !tte[i].depth8)
       {
-          tte[i].genBound8 = uint8_t(generation8 | (tte[i].genBound8 & (GENERATION_DELTA - 1))); // Refresh
-
+          // When we hit an entry, refresh its generation to the current one.
+          tte[i].genBound8 = uint8_t(generation8 | (tte[i].genBound8 & GENERATION_NONMASK));
           return found = (bool)tte[i].depth8, &tte[i];
       }
 
-  // Find an entry to be replaced according to the replacement strategy
+  // Find an entry to be replaced according to the replacement strategy.
   TTEntry* replace = tte;
   for (int i = 1; i < ClusterSize; ++i)
-      // Due to our packed storage format for generation and its cyclic
-      // nature we add GENERATION_CYCLE (256 is the modulus, plus what
-      // is needed to keep the unrelated lowest n bits from affecting
-      // the result) to calculate the entry age correctly even after
-      // generation8 overflows into the next cycle.
-      if (  replace->depth8 - ((GENERATION_CYCLE + generation8 - replace->genBound8) & GENERATION_MASK)
-          >   tte[i].depth8 - ((GENERATION_CYCLE + generation8 -   tte[i].genBound8) & GENERATION_MASK))
+      // We subtract TTE.genBound8 from generation8 to get the TTE's age, then
+      // multiply by 8 and compare the depth, per the strategy.
+      if (  replace->depth8 - GENERATION_AGE_BY8(replace->genBound8)
+          >   tte[i].depth8 - GENERATION_AGE_BY8(  tte[i].genBound8))
           replace = &tte[i];
 
   return found = false, replace;
