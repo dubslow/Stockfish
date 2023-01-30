@@ -319,11 +319,8 @@ void Thread::search() {
 
   int searchAgainCounter = 0;
 
-  // With established TT, jumpstart iterative deepening. This has the potential
-  // for serious bugs in off-common TM scenarios
-  rootDepth = previousDepth / 4;
-  if (Limits.depth)
-      rootDepth = std::min(rootDepth, Limits.depth / 4);
+  if (previousDepth >= 8)
+      rootDepth++;
 
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   ++rootDepth < MAX_PLY
@@ -508,6 +505,9 @@ void Thread::search() {
 
       mainThread->iterValue[iterIdx] = bestValue;
       iterIdx = (iterIdx + 1) & 3;
+
+      if (!Threads.stop && Threads.increaseDepth && completedDepth < previousDepth / 2)
+          rootDepth += 1 + (completedDepth < previousDepth / 4); // Go faster to higher depths!
   }
 
   if (!mainThread)
