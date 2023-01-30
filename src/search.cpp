@@ -242,6 +242,9 @@ void MainThread::search() {
   bestPreviousScore = bestThread->rootMoves[0].score;
   bestPreviousAverageScore = bestThread->rootMoves[0].averageScore;
 
+  for (Thread* th : Threads)
+    th->previousDepth = bestThread->completedDepth;
+
   // Send again PV info if we have a new best thread
   if (bestThread != this)
       sync_cout << UCI::pv(bestThread->rootPos, bestThread->completedDepth) << sync_endl;
@@ -315,6 +318,12 @@ void Thread::search() {
   optimism[us] = optimism[~us] = VALUE_ZERO;
 
   int searchAgainCounter = 0;
+
+  // With established TT, jumpstart iterative deepening. This has the potential
+  // for serious bugs in off-common TM scenarios
+  rootDepth = previousDepth / 4;
+  if (Limits.depth)
+      rootDepth = std::min(rootDepth, Limits.depth / 4);
 
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   ++rootDepth < MAX_PLY
