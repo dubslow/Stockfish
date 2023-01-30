@@ -504,7 +504,7 @@ void Thread::search() {
       iterIdx = (iterIdx + 1) & 3;
 
       if (!Threads.stop && Threads.increaseDepth && completedDepth < previousDepth / 2)
-          rootDepth++; // Go faster to higher depths!
+          rootDepth += (iterIdx & 1); // Skip every third depth
   }
 
   if (!mainThread)
