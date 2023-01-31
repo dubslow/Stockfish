@@ -1077,6 +1077,9 @@ moves_loop: // When in check, search starts here
                       extension = 2;
                       depth += depth < 12;
                   }
+
+                  if (singularBeta < alpha)
+                      extension -= 1;
               }
 
               // Multi-cut pruning
