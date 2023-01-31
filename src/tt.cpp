@@ -43,7 +43,7 @@ void TTEntry::save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev) 
   if (   b == BOUND_EXACT
       || (uint16_t)k != key16
       // "quality" = depth + boundtype (none, upper, lower, exact), newquality + newbonus > oldquality
-      || d - DEPTH_OFFSET + b + 4 > depth8 + bound())
+      || d - DEPTH_OFFSET + b + pv + 4 > depth8 + bound() / 2)
   {
       assert(d > DEPTH_OFFSET);
       assert(d < 256 + DEPTH_OFFSET);
