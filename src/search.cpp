@@ -1085,7 +1085,7 @@ moves_loop: // When in check, search starts here
                   }
 
                   if (PvNode && ttValue < alpha)
-                      depth -= 1; // Reduce other moves if singular ttMove doesn't fail high
+                      depth += depth < 12; // Reduce other moves if singular ttMove doesn't fail high
               }
 
               // Multi-cut pruning
