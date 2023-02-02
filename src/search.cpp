@@ -1165,9 +1165,9 @@ moves_loop: // When in check, search starts here
           r++;
 
       ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
-          + (1 + (move == ss->killers[0] || move == ss->killers[1]) ) * (*contHist[0])[movedPiece][to_sq(move)]
-          + (1 + (move == ss->killers[0] || move == ss->killers[1]) ) * (*contHist[1])[movedPiece][to_sq(move)]
-          + (    (move == ss->killers[0] || move == ss->killers[1]) ) * (*contHist[3])[movedPiece][to_sq(move)]
+          + (1 + (move ==  ss   ->killers[0] || move ==  ss   ->killers[1]) ) * (*contHist[0])[movedPiece][to_sq(move)]
+          + (1 + (move == (ss-1)->killers[0] || move == (ss-1)->killers[1]) ) * (*contHist[1])[movedPiece][to_sq(move)]
+          + (    (move == (ss-3)->killers[0] || move == (ss-3)->killers[1]) ) * (*contHist[3])[movedPiece][to_sq(move)]
                      - 4467;
 
       // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
