@@ -617,7 +617,6 @@ namespace {
 
     // Step 4. Transposition table lookup.
     excludedMove = ss->excludedMove;
-    bool preExcludedTtHit = ss->ttHit; // to guard against TT race conditions
     posKey = pos.key();
     tte = TT.probe(posKey, ss->ttHit);
     ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
@@ -732,12 +731,8 @@ namespace {
     }
     else if (excludedMove)
     {
-       if (preExcludedTtHit)
-           // Static evals from the TT aren't good enough (-13 elo), presumably due to changing optimism context
-           ss->staticEval = eval = evaluate(pos, &complexity);
-       else // However, non-TT evals from the containing non-excluded search,
-            // being fresh, are useful, and re-using them gains about ~1 Elo.
-           eval = ss->staticEval;
+       // Static evals from the TT aren't good enough (-13 elo), presumably due to changing optimism context
+       ss->staticEval = eval = evaluate(pos, &complexity);
     }
     else if (ss->ttHit)
     {
@@ -759,7 +754,6 @@ namespace {
     {
         ss->staticEval = eval = evaluate(pos, &complexity);
         thisThread->complexityAverage.update(complexity);
-
         // Save static evaluation into transposition table
         tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
     }
