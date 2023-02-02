@@ -1164,15 +1164,10 @@ moves_loop: // When in check, search starts here
       if ((ss+1)->cutoffCnt > 3)
           r++;
 
-      // Decrease reduction if move is a killer and we have a good history
-      if (move == ss->killers[0]
-          && (*contHist[0])[movedPiece][to_sq(move)] >= 3600)
-          r--;
-
       ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[movedPiece][to_sq(move)]
-                     + (*contHist[1])[movedPiece][to_sq(move)]
-                     + (*contHist[3])[movedPiece][to_sq(move)]
+          + (1 + (move == ss->killers[0] || move == ss->killers[1]) ) * (*contHist[0])[movedPiece][to_sq(move)]
+          + (1 + (move == ss->killers[0] || move == ss->killers[1]) ) * (*contHist[1])[movedPiece][to_sq(move)]
+          + (    (move == ss->killers[0] || move == ss->killers[1]) ) * (*contHist[3])[movedPiece][to_sq(move)]
                      - 4467;
 
       // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
