@@ -1072,6 +1072,8 @@ moves_loop: // When in check, search starts here
 
               if (value < singularBeta)
               {
+                  if (PvNode && ttValue < alpha)
+                      return value;
                   extension = 1;
                   singularQuietLMR = !ttCapture;
 
