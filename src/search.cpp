@@ -1203,9 +1203,12 @@ moves_loop: // When in check, search starts here
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
+          int bonus = 0;
           // Do full depth search when reduced LMR search fails high
-          if (value > alpha && d < newDepth)
+          if (value > alpha)
           {
+            if (d < newDepth)
+            {
               // Adjust full depth search based on LMR results - if result
               // was good enough search deeper, if it was bad enough search shallower
               const bool doDeeperSearch = value > (alpha + 66 + 11 * (newDepth - d));
@@ -1215,14 +1218,19 @@ moves_loop: // When in check, search starts here
               ss->doubleExtensions = ss->doubleExtensions + doEvenDeeperSearch;
 
               newDepth += doDeeperSearch - doShallowerSearch + doEvenDeeperSearch;
+              bonus = 1 + doEvenDeeperSearch;
 
               if (newDepth > d)
                   value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
 
-              int bonus = value > alpha ?  stat_bonus(newDepth)
-                                        : -stat_bonus(newDepth);
+              if (alpha > value)
+                  bonus *= -1;
 
-              update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
+              bonus *= stat_bonus(newDepth);
+            }
+            else
+                bonus = stat_bonus(d);
+            update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
           }
       }
 
