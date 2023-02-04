@@ -1075,7 +1075,7 @@ moves_loop: // When in check, search starts here
                   // ttv + margin = ttv + (ttv-sB) = 2ttv-sB
                   // if (PV && ttv + margin < alpha) then all these moves suck
                   if (PvNode && 2*ttValue-singularBeta < alpha)
-                      return value;
+                      return ttValue;
 
                   extension = 1;
                   singularQuietLMR = !ttCapture;
