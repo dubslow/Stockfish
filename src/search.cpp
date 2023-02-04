@@ -743,12 +743,13 @@ namespace {
             ss->staticEval = eval = evaluate(pos, &complexity);
         else // Fall back to (semi)classical complexity for TT hits, the NNUE complexity is lost
             complexity = abs(ss->staticEval - pos.psq_eg_stm());
-        thisThread->complexityAverage.update(complexity);
 
         // ttValue can be used as a better position evaluation (~7 Elo)
         if (    ttValue != VALUE_NONE
             && (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
             eval = ttValue;
+        else
+            thisThread->complexityAverage.update(complexity); // No sense updating this when our eval is overwritten?
     }
     else
     {
