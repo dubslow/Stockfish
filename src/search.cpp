@@ -472,9 +472,11 @@ void Thread::search() {
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::min(1.0 + (complexity - 261) / 1738.7, 1.5);
-          double moveCounts = std::clamp(mainThread->moveCountAverage.value() / (4.25 * (1<<24)), 0.5, 1.5);
 
-          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * moveCounts;
+          double mvCAdjust = double(mainThread->moveCountAverage.value()) / (1<<22);
+          mvCAdjust = std::clamp(1.0 + (mvCAdjust - 4.25) / 28.99, 0.5, 1.5);
+
+          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * mvCAdjust;
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
@@ -1363,7 +1365,7 @@ moves_loop: // When in check, search starts here
 
     assert(moveCount || !ss->inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
 
-    thisThread->moveCountAverage.update(moveCount << 24); // Extra granularity to get a "fraction" out
+    thisThread->moveCountAverage.update(moveCount << 22); // Extra granularity to get a "fraction" out
 
     if (!moveCount)
         bestValue = excludedMove ? alpha :
