@@ -254,6 +254,15 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
+int O1=116, O2=170;
+int C1=153, C2=261, C3=1739, C4=32, C4a=18, C4b=14, C4c=223, C5=816, C5a=166, C5b=4, C6=512, C7=0;
+TUNE(O1, C1, C2, C3, C4a, C4c, C5, C5b);
+TUNE(SetRange(1, 170*4), O2);
+TUNE(SetRange(8,  32*3), C4);
+TUNE(SetRange(1,  14*3), C4b);
+TUNE(SetRange(1, 166*3), C5a);
+TUNE(SetRange(-1, 2048), C6, C7);
+
 
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
@@ -310,7 +319,7 @@ void Thread::search() {
 
   multiPV = std::min(multiPV, rootMoves.size());
 
-  complexityAverage.set(153, 1);
+  complexityAverage.set(C1, 1);
 
   optimism[us] = optimism[~us] = VALUE_ZERO;
 
@@ -359,7 +368,7 @@ void Thread::search() {
               beta  = std::min(prev + delta, VALUE_INFINITE);
 
               // Adjust optimism based on root move's previousScore
-              int opt = 116 * prev / (std::abs(prev) + 170);
+              int opt = O1 * prev / (std::abs(prev) + O2);
               optimism[ us] = Value(opt);
               optimism[~us] = -optimism[us];
           }
@@ -471,7 +480,7 @@ void Thread::search() {
           double reduction = (1.4 + mainThread->previousTimeReduction) / (2.15 * timeReduction);
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
-          double complexPosition = std::min(1.0 + (complexity - 261) / 1738.7, 1.5);
+          double complexPosition = std::min(1.0 + (complexity - C2) / double(C3), 1.5);
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
 
@@ -742,7 +751,7 @@ namespace {
         if (eval == VALUE_NONE)
             ss->staticEval = eval = evaluate(pos, &complexity);
         else // Fall back to (semi)classical complexity for TT hits, the NNUE complexity is lost
-            complexity = abs(ss->staticEval - pos.psq_eg_stm());
+            complexity = (C6 * abs(ss->staticEval - pos.psq_eg_stm()) + C7 * thisThread->complexityAverage.value()) / 512;
 
         // ttValue can be used as a better position evaluation (~7 Elo)
         if (    ttValue != VALUE_NONE
@@ -798,7 +807,7 @@ namespace {
         && (ss-1)->statScore < 18200
         &&  eval >= beta
         &&  eval >= ss->staticEval
-        &&  ss->staticEval >= beta - 20 * depth - improvement / 14 + 235 + complexity / 24
+        &&  ss->staticEval >= beta - C4a * depth - improvement / C4b + C4c + complexity / C4
         && !excludedMove
         &&  pos.non_pawn_material(us)
         && (ss->ply >= thisThread->nmpMinPly || us != thisThread->nmpColor))
@@ -806,7 +815,7 @@ namespace {
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth, eval and complexity of position
-        Depth R = std::min(int(eval - beta) / 165, 6) + depth / 3 + 4 - (complexity > 800);
+        Depth R = std::min(int(eval - beta) / C5a, 6) + depth / 3 + C5b - (complexity > C5);
 
         ss->currentMove = MOVE_NULL;
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
