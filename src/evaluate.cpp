@@ -1044,6 +1044,11 @@ make_v:
 
 } // namespace Eval
 
+int E1=1076, E2=154, E3=406, E4=450, E5=272, E6=1024, E7=748;
+TUNE(E2, E5, E7);
+TUNE(SetRange(700,1500), E1);
+TUNE(SetRange(1, 1024), E3, E4);
+TUNE(SetRange(1, 1024*8), E6);
 
 /// evaluate() is the evaluator for the outer world. It returns a static
 /// evaluation of the position from the point of view of the side to move.
@@ -1063,7 +1068,7 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   else
   {
       int nnueComplexity;
-      int scale = 1076 + 96 * pos.non_pawn_material() / 5120;
+      int scale = E1 + E2 * pos.non_pawn_material() / 8192;
 
       Color stm = pos.side_to_move();
       Value optimism = pos.this_thread()->optimism[stm];
@@ -1071,17 +1076,14 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
       Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
 
       // Blend nnue complexity with (semi)classical complexity
-      nnueComplexity = (  406 * nnueComplexity
-                        + 424 * abs(psq - nnue)
-                        + int(optimism) * int(psq - nnue)
-                        ) / 1024;
+      nnueComplexity = (E3 * nnueComplexity + E4 * abs(psq - nnue)) / 1024;
 
       // Return hybrid NNUE complexity to caller
       if (complexity)
           *complexity = nnueComplexity;
 
-      optimism = optimism * (272 + nnueComplexity) / 256;
-      v = (nnue * scale + optimism * (scale - 748)) / 1024;
+      optimism = optimism * (E5 + nnueComplexity + (int(optimism) * int(psq - nnue)) / E6) / 256;
+      v = (nnue * scale + optimism * (scale - E7)) / 1024;
   }
 
   // Damp down the evaluation linearly when shuffling
