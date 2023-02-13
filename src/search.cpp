@@ -254,15 +254,8 @@ void MainThread::search() {
   std::cout << sync_endl;
 }
 
-int O1=116, O2=170;
-int C1=153, C2=261, C3=1739, C4=32, C4a=18, C4b=14, C4c=223, C5=816, C5a=166, C5b=4, C6=512, C7=0;
-TUNE(O1, C1, C2, C3, C4a, C4c, C5, C5b);
-TUNE(SetRange(1, 170*4), O2);
-TUNE(SetRange(8,  32*3), C4);
-TUNE(SetRange(1,  14*3), C4b);
-TUNE(SetRange(1, 166*3), C5a);
-TUNE(SetRange(-1, 2048), C6, C7);
-
+int O1=90, O2=296;
+int C1=145, C2=248, C3=2130, C4=25, C4a=18, C4b=11, C4c=275, C5=754, C5a=190, C5b=4, C6=400, C7=42;
 
 /// Thread::search() is the main iterative deepening loop. It calls search()
 /// repeatedly with increasing depth until the allocated thinking time has been
