@@ -1120,19 +1120,6 @@ moves_loop: // When in check, search starts here
       newDepth += extension;
       ss->doubleExtensions = (ss-1)->doubleExtensions + (extension == 2);
 
-      // Speculative prefetch as early as possible
-      prefetch(TT.first_entry(pos.key_after(move)));
-
-      // Update the current move (this must be done after singular extension search)
-      ss->currentMove = move;
-      ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
-                                                                [capture]
-                                                                [movedPiece]
-                                                                [to_sq(move)];
-
-      // Step 16. Make the move
-      pos.do_move(move, st, givesCheck);
-
       Depth r = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
 
       // Decrease reduction if position is or has been on the PV
@@ -1183,6 +1170,19 @@ moves_loop: // When in check, search starts here
 
       // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
       r -= ss->statScore / (12800 + 4410 * (depth > 7 && depth < 19));
+
+      // Speculative prefetch as early as possible
+      prefetch(TT.first_entry(pos.key_after(move)));
+
+      // Update the current move (this must be done after singular extension search)
+      ss->currentMove = move;
+      ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
+                                                                [capture]
+                                                                [movedPiece]
+                                                                [to_sq(move)];
+
+      // Step 16. Make the move
+      pos.do_move(move, st, givesCheck);
 
       // Step 17. Late moves reduction / extension (LMR, ~117 Elo)
       // We use various heuristics for the sons of a node after the first son has
