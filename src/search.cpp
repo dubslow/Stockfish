@@ -1067,7 +1067,10 @@ moves_loop: // When in check, search starts here
 
               ss->excludedMove = move;
               // the search with excludedMove will update ss->staticEval
-              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+              if (PvNode)
+                  value = search<PV>(pos, ss, (alpha<singularBeta ? alpha : singularBeta-1), beta, singularDepth, false);
+              else
+                  value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
               ss->excludedMove = MOVE_NONE;
 
               if (value < singularBeta)
