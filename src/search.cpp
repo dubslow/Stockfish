@@ -1375,7 +1375,8 @@ moves_loop: // When in check, search starts here
     {
         // Extra bonuses for PV/Cut nodes or bad fail lows
         int bonus = (depth > 5) + (PvNode || cutNode) + (bestValue < alpha - 97 * depth);
-        update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, stat_bonus(depth) * bonus - 150 + 25 * (ss-1)->moveCount);
+        int mctweak = std::min(-150 + 25 * (ss-1)->moveCount, 150);
+        update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, stat_bonus(depth) * bonus + mctweak);
     }
 
     if (PvNode)
