@@ -560,7 +560,7 @@ namespace {
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
-    ss->inCheck        = pos.checkers();
+    ss->inCheck        = pos.checkers() && (!Eval::useNNUE || (pos.count<ALL_PIECES>() > 7 && abs(pos.psq_eg_stm()) > 1781));
     priorCapture       = pos.captured_piece();
     Color us           = pos.side_to_move();
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
@@ -793,7 +793,7 @@ namespace {
         return eval;
 
     // Step 9. Null move search with verification search (~35 Elo)
-    if (   !PvNode
+    if (   !PvNode && !pos.checkers()
         && (ss-1)->currentMove != MOVE_NULL
         && (ss-1)->statScore < 18200
         &&  eval >= beta
@@ -847,7 +847,7 @@ namespace {
     // Step 10. ProbCut (~10 Elo)
     // If we have a good enough capture and a reduced search returns a value
     // much above beta, we can (almost) safely prune the previous move.
-    if (   !PvNode
+    if (   !PvNode && !pos.checkers()
         &&  depth > 4
         &&  abs(beta) < VALUE_TB_WIN_IN_MAX_PLY
         // if value from transposition table is lower than probCutBeta, don't attempt probCut
@@ -1358,12 +1358,12 @@ moves_loop: // When in check, search starts here
     // must be a mate or a stalemate. If we are in a singular extension search then
     // return a fail low score.
 
-    assert(moveCount || !ss->inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
+    assert(moveCount || !pos.checkers() || excludedMove || !MoveList<LEGAL>(pos).size());
 
     if (!moveCount)
         bestValue = excludedMove ? alpha :
-                    ss->inCheck  ? mated_in(ss->ply)
-                                 : VALUE_DRAW;
+                    pos.checkers()  ? mated_in(ss->ply)
+                                    : VALUE_DRAW;
 
     // If there is a move which produces search value greater than alpha we update stats of searched moves
     else if (bestMove)
@@ -1433,7 +1433,7 @@ moves_loop: // When in check, search starts here
 
     Thread* thisThread = pos.this_thread();
     bestMove = MOVE_NONE;
-    ss->inCheck = pos.checkers();
+    ss->inCheck = pos.checkers() && (!Eval::useNNUE || (pos.count<ALL_PIECES>() > 7 && abs(pos.psq_eg_stm()) > 1781));
     moveCount = 0;
 
     // Step 2. Check for an immediate draw or maximum ply reached
@@ -1446,7 +1446,7 @@ moves_loop: // When in check, search starts here
     // Decide whether or not to include checks: this fixes also the type of
     // TT entry depth that we are going to use. Note that in qsearch we use
     // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-    ttDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
+    ttDepth = pos.checkers() || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
                                                   : DEPTH_QS_NO_CHECKS;
     // Step 3. Transposition table lookup
     posKey = pos.key();
@@ -1590,7 +1590,7 @@ moves_loop: // When in check, search starts here
                                                                 [pos.moved_piece(move)]
                                                                 [to_sq(move)];
 
-      quietCheckEvasions += !capture && ss->inCheck;
+      quietCheckEvasions += !capture && pos.checkers();
 
       // Step 7. Make and search the move
       pos.do_move(move, st, givesCheck);
@@ -1622,7 +1622,7 @@ moves_loop: // When in check, search starts here
     // Step 9. Check for mate
     // All legal moves have been searched. A special case: if we're in check
     // and no legal moves were found, it is checkmate.
-    if (ss->inCheck && bestValue == -VALUE_INFINITE)
+    if (pos.checkers() && bestValue == -VALUE_INFINITE)
     {
         assert(!MoveList<LEGAL>(pos).size());
 
