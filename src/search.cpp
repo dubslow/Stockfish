@@ -1101,7 +1101,6 @@ moves_loop: // When in check, search starts here
                       && ss->doubleExtensions <= 10)
                   {
                       extension = 2;
-                      depth += depth < 13;
                   }
               }
 
@@ -1246,6 +1245,11 @@ moves_loop: // When in check, search starts here
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth - (r > 4), !cutNode);
       }
+
+      // If this move doesn't beta-cutoff, then try the alternatives also deeper
+      if (extension > 0)
+          depth += depth < 13;
+
 
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
