@@ -734,6 +734,10 @@ namespace {
         Eval::NNUE::hint_common_parent_position(pos);
         eval = ss->staticEval;
         complexity = abs(ss->staticEval - pos.psq_eg_stm());
+        // ttValue can be used as a better position evaluation
+        if (    ttValue != VALUE_NONE
+            && (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
+            eval = ttValue;
     }
     else if (ss->ttHit)
     {
