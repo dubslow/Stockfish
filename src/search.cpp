@@ -1110,9 +1110,8 @@ moves_loop: // When in check, search starts here
                    && abs(ss->staticEval) > 78)
               extension = 1;
 
-          // Quiet ttMove extensions (~1 Elo)
+          // Quiet extensions (~1 Elo)
           else if (   PvNode
-                   && move == ttMove
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5600)
               extension = 1;
