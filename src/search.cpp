@@ -1112,6 +1112,7 @@ moves_loop: // When in check, search starts here
 
           // Quiet ttMove extensions (~1 Elo)
           else if (   PvNode
+                   && (ttValue != VALUE_NONE && ttValue > alpha - 50 - 50*depth)
                    && move == ttMove
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5705)
