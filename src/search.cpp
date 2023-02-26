@@ -1057,7 +1057,7 @@ moves_loop: // When in check, search starts here
           // result is lower than ttValue minus a margin, then we will extend the ttMove.
           int depthBound = 4 - (thisThread->completedDepth > 21) + 2 * (PvNode && tte->is_pv());
           if (   !rootNode
-              &&  depth >= depthBound - 1
+              &&  depth >= depthBound
               &&  move == ttMove
               && !excludedMove // Avoid recursive singular search
            /* &&  ttValue != VALUE_NONE Already implicit in the next condition */
@@ -1075,7 +1075,7 @@ moves_loop: // When in check, search starts here
 
               if (value < singularBeta)
               {
-                  extension = (depth >= depthBound); // allow 2ext one depth before 1ext
+                  extension = (depth >= depthBound + 1); // allow 2ext one depth before 1ext
                   singularQuietLMR = !ttCapture;
 
                   // Avoid search explosion by limiting the number of double extensions
