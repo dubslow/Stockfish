@@ -137,7 +137,7 @@ namespace Stockfish::Eval::NNUE {
   }
 
   void hint_common_parent_position(const Position& pos) {
-    if (Eval::useNNUE)
+    if (Eval::useNNUE && !pos.useClassical())
         featureTransformer->hint_common_access(pos);
   }
 

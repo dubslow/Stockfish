@@ -162,6 +162,7 @@ public:
   int rule50_count() const;
   Score psq_score() const;
   Value psq_eg_stm() const;
+  bool  useClassical() const;
   Value non_pawn_material(Color c) const;
   Value non_pawn_material() const;
 
@@ -353,6 +354,10 @@ inline Score Position::psq_score() const {
 
 inline Value Position::psq_eg_stm() const {
   return (sideToMove == WHITE ? 1 : -1) * eg_value(psq);
+}
+
+inline bool Position::useClassical() const {
+  return count<ALL_PIECES>() > 7 && abs(psq_eg_stm()) > 1781;
 }
 
 inline Value Position::non_pawn_material(Color c) const {
