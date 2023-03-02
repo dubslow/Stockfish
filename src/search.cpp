@@ -840,6 +840,7 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
+            Eval::NNUE::hint_common_parent_position(pos);
             Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
 
             thisThread->nmpMinPly = 0;
@@ -847,6 +848,7 @@ namespace {
             if (v >= beta)
                 return nullValue;
         }
+        Eval::NNUE::hint_common_parent_position(pos); // possible duplicate if we've already failed a verification search
     }
 
     probCutBeta = beta + 186 - 54 * improving;
