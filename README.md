@@ -35,8 +35,10 @@
 Glaurung 2.1. **Stockfish is not a complete chess program** and requires a UCI-compatible
 graphical user interface (GUI) (e.g. XBoard with PolyGlot, Scid, Cute Chess, eboard,
 Arena, Sigma Chess, Shredder, Chess Partner, Fritz, etc.) to be used comfortably.
-Read the documentation for your GUI of choice for information about how to use
+**Read the documentation for your GUI** of choice for information about how to use
 Stockfish with it.
+
+See also the Stockfish [wiki][wiki-link] for further usage help.
 
 ## Files
 
@@ -57,32 +59,24 @@ This distribution of Stockfish consists of the following files:
 
 ## The UCI protocol
 
-The [Universal Chess Interface][uci-link] (UCI) is a standard protocol used to communicate with
+The [Universal Chess Interface][uci-link] (UCI) is a standard text-based protocol used to communicate with
 a chess engine and is the recommended way to do so for typical graphical user interfaces
 (GUI) or chess tools. Stockfish implements the majority of its options.
 
 Developers can see the default values for the UCI options available in Stockfish by typing
-`./stockfish uci` in a terminal, but the majority of users will typically see them and
-change them via a chess GUI.
+`./stockfish uci` in a terminal, but most users should typically use a chess GUI to interact with
+Stockfish.
 
-For more information, see our [documentation][wiki-commands-link].
+For more information on UCI or debug commands, see our [documentation][wiki-commands-link].
 
 ## Compiling Stockfish
 
 Stockfish has support for 32 or 64-bit CPUs, certain hardware
 instructions, big-endian machines such as Power PC, and other platforms.
 
-On Unix-like systems, it should be easy to compile Stockfish
-directly from the source code with the included Makefile in the folder
-`src`. In general, it is recommended to run `make help` to see a list of make
-targets with corresponding descriptions.
-
-```
-cd src
-make -j build ARCH=x86-64-modern
-```
-
-For more information, see our [documentation][wiki-compile-link].
+Detailed compilation instructions for all platforms can be found in our [documentation][wiki-compile-link].
+The short version is that Stockfish only requires `make`, run in the `src` folder. The target
+architecture must be supplied by the user. See also `make help`.
 
 ## Contributing
 
@@ -105,7 +99,8 @@ If you want to help improve Stockfish, please read this [guideline][guideline-li
 first, where the basics of Stockfish development are explained.
 
 Discussions about Stockfish take place these days mainly in the
-Stockfish [Discord server][discord-link].
+Stockfish [Discord server][discord-link]. This is also the best place to ask questions
+about the codebase and how to improve it.
 
 ## Terms of use
 
@@ -139,7 +134,7 @@ source code, these changes must also be made available under GPL v3.
 [release-link]:       https://github.com/official-stockfish/Stockfish/releases/latest
 [src-link]:           https://github.com/official-stockfish/Stockfish/tree/master/src
 [stockfish128-logo]:  https://stockfishchess.org/images/logo/icon_128x128.png
-[uci-link]:           https://www.shredderchess.com/download/div/uci.zip
+[uci-link]:           https://backscattering.de/chess/uci/
 [website-link]:       https://stockfishchess.org
 [website-blog-link]:  https://stockfishchess.org/blog/
 [wiki-link]:          https://github.com/official-stockfish/Stockfish/wiki
