@@ -78,6 +78,13 @@ Detailed compilation instructions for all platforms can be found in our [documen
 The short version is that Stockfish only requires `make`, run in the `src` folder. The target
 architecture must be supplied by the user. See also `make help`.
 
+A simple example:
+```
+cd src
+make -j build ARCH=x86-64-modern
+```
+
+
 ## Contributing
 
 ### Donating hardware
