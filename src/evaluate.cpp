@@ -1056,7 +1056,7 @@ std::pair<Value, int> Eval::cook_nnue(const Position& pos) {
     // Complexity: use blend of pure nnue with semiclassical, with weird optimism weight.
     // Note however that the semiclassical uses the adjusted eval, not `positional`.
     int nnComplexity = (   406             * abs(nnPositional - nnPsq)
-                        + (424 + optimism) * abs(nnAdjusted   - pos.psq_eg_stm())
+                        + (424 + optimism) * abs(nnPositional - pos.psq_eg_stm())
                        ) / 1024;
 
     optimism = optimism * (272 + nnComplexity) / 256;
