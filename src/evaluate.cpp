@@ -1054,12 +1054,11 @@ std::pair<Value, int> Eval::cook_nnue(const Position& pos) {
     Value nnAdjusted = ((1024 + nnDelta) * nnPositional + (1024 - nnDelta) * nnPsq) / 1024;
 
     // Complexity: use blend of pure nnue with semiclassical, with weird optimism weight.
-    // Note however that the semiclassical uses the adjusted eval, not `positional`.
-    int nnComplexity = (   406             * abs(nnPositional - nnPsq)
-                        + (424 + optimism) * abs(nnAdjusted   - pos.psq_eg_stm())
+    int nnComplexity = (   406 * abs(nnPositional - nnPsq)
+                        +  424 * abs(nnAdjusted   - pos.psq_eg_stm())
                        ) / 1024;
 
-    optimism = optimism * (272 + nnComplexity) / 256;
+    optimism = optimism * (272 + nnComplexity + int(optimism) * int(nnPsq - nnPositional) / 256) / 256;
     Value nnCooked = (nnAdjusted * scale + optimism * (scale - 748)) / 1024;
     return {nnCooked, nnComplexity};
 }
