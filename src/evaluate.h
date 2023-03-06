@@ -21,6 +21,7 @@
 
 #include <string>
 #include <optional>
+#include <utility>
 
 #include "types.h"
 
@@ -30,8 +31,15 @@ class Position;
 
 namespace Eval {
 
+  // This is a helper function, shouldn't be used outside the namespace.
+  std::pair<Value, int> cook_nnue(const Position& pos); // returns {nnCooked, nnComplexity}
+  
+  // This is the evaluator for the oustide world. It returns a static
+  // evaluation of the position from the point of view of the side to move.
+  std::pair<Value, int> evaluate(const Position& pos); // returns {value, complexity}
+  
+  // Used to generate ASCII art depictions of the static eval (e.g. for debug)
   std::string trace(Position& pos);
-  Value evaluate(const Position& pos, int* complexity = nullptr);
 
   extern bool useNNUE;
   extern std::string currentEvalFileName;
@@ -44,7 +52,7 @@ namespace Eval {
   namespace NNUE {
 
     std::string trace(Position& pos);
-    Value evaluate(const Position& pos, bool adjusted = false, int* complexity = nullptr);
+    std::pair<Value, Value> evaluate(const Position& pos); // returns {positional, psq}
     void hint_common_parent_position(const Position& pos);
 
     void init();
