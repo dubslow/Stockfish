@@ -1050,13 +1050,14 @@ std::pair<Value, int> Eval::cook_nnue(const Position& pos) {
     Value optimism = pos.this_thread()->optimism[pos.side_to_move()];
 
     auto [nnPositional, nnPsq] = NNUE::evaluate(pos);
+
     int nnDelta = 24 - pos.non_pawn_material() / 9560;
     Value nnAdjusted = ((1024 + nnDelta) * nnPositional + (1024 - nnDelta) * nnPsq) / 1024;
 
     // Complexity: use blend of pure nnue with semiclassical, with weird optimism weight.
     // Note however that the semiclassical uses the adjusted eval, not `positional`.
     int nnComplexity = (   406             * abs(nnPositional - nnPsq)
-                        + (424 + optimism) * abs(nnAdjusted   - pos.psq_eg_stm())
+                        + (424 + optimism) * abs(2*nnPositional - pos.psq_eg_stm())
                        ) / 1024;
 
     optimism = optimism * (272 + nnComplexity) / 256;
