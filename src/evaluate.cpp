@@ -1077,7 +1077,7 @@ std::pair<Value, int> Eval::evaluate(const Position& pos) {
   if (useClassical)
   {
       v = Evaluation<NO_TRACE>(pos).value();
-      //complexity = abs(v - psq)
+      complexity = abs(v - cPsq);
   }
   else
       std::tie(v, complexity) = cook_nnue(pos);
@@ -1087,9 +1087,6 @@ std::pair<Value, int> Eval::evaluate(const Position& pos) {
 
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
-
-  if (useClassical) // Use the post-dampening value to be more similar to tthit-fallback formula (see search.cpp)
-      complexity = abs(v - cPsq);
 
   return {v, complexity};
 }
