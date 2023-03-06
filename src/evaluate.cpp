@@ -1044,44 +1044,43 @@ make_v:
 
 } // namespace Eval
 
+std::pair<Value, int> Eval::cook_nnue(const Position& pos) {
 
-/// evaluate() is the evaluator for the outer world. It returns a static
-/// evaluation of the position from the point of view of the side to move.
+    int scale = 1001 + 5 * pos.count<PAWN>() + 61 * pos.non_pawn_material() / 4096;
+    Value optimism = pos.this_thread()->optimism[pos.side_to_move()];
 
-Value Eval::evaluate(const Position& pos, int* complexity) {
+    auto [nnPositional, nnPsq] = NNUE::evaluate(pos);
+    int nnDelta = 24 - pos.non_pawn_material() / 9560;
+    Value nnAdjusted = ((1024 + nnDelta) * nnPositional + (1024 - nnDelta) * nnPsq) / 1024;
 
-  Value v;
-  Value psq = pos.psq_eg_stm();
+    // Complexity: use blend of pure nnue with semiclassical, with weird optimism weight.
+    // Note however that the semiclassical uses the adjusted eval, not `positional`.
+    int nnComplexity = (   406             * abs(nnPositional - nnPsq)
+                        + (424 + optimism) * abs(nnAdjusted   - pos.psq_eg_stm())
+                       ) / 1024;
+
+    optimism = optimism * (272 + nnComplexity) / 256;
+    Value nnCooked = (nnAdjusted * scale + optimism * (scale - 748)) / 1024;
+    return {nnCooked, nnComplexity};
+}
+
+std::pair<Value, int> Eval::evaluate(const Position& pos) {
+
+  Value v, cPsq = pos.psq_eg_stm();
+  int complexity;
 
   // We use the much less accurate but faster Classical eval when the NNUE
   // option is set to false. Otherwise we use the NNUE eval unless the
   // PSQ advantage is decisive and several pieces remain. (~3 Elo)
-  bool useClassical = !useNNUE || (pos.count<ALL_PIECES>() > 7 && abs(psq) > 1781);
+  bool useClassical = !useNNUE || (pos.count<ALL_PIECES>() > 7 && abs(cPsq) > 1781);
 
   if (useClassical)
-      v = Evaluation<NO_TRACE>(pos).value();
-  else
   {
-      int nnueComplexity;
-      int scale = 1001 + 5 * pos.count<PAWN>() + 61 * pos.non_pawn_material() / 4096;
-
-      Color stm = pos.side_to_move();
-      Value optimism = pos.this_thread()->optimism[stm];
-
-      Value nnue = NNUE::evaluate(pos, true, &nnueComplexity);
-
-      // Blend nnue complexity with (semi)classical complexity
-      nnueComplexity = (  406 * nnueComplexity
-                        + (424 + optimism) * abs(psq - nnue)
-                        ) / 1024;
-
-      // Return hybrid NNUE complexity to caller
-      if (complexity)
-          *complexity = nnueComplexity;
-
-      optimism = optimism * (272 + nnueComplexity) / 256;
-      v = (nnue * scale + optimism * (scale - 748)) / 1024;
+      v = Evaluation<NO_TRACE>(pos).value();
+      //complexity = abs(v - psq)
   }
+  else
+      std::tie(v, complexity) = cook_nnue(pos);
 
   // Damp down the evaluation linearly when shuffling
   v = v * (200 - pos.rule50_count()) / 214;
@@ -1089,11 +1088,10 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 
-  // When not using NNUE, return classical complexity to caller
-  if (complexity && useClassical)
-      *complexity = abs(v - psq);
+  if (useClassical) // Use the post-dampening value to be more similar to tthit-fallback formula (see search.cpp)
+      complexity = abs(v - cPsq);
 
-  return v;
+  return {v, complexity};
 }
 
 /// trace() is like evaluate(), but instead of returning a value, it returns
@@ -1152,12 +1150,13 @@ std::string Eval::trace(Position& pos) {
   ss << "\nClassical evaluation   " << to_cp(v) << " (white side)\n";
   if (Eval::useNNUE)
   {
-      v = NNUE::evaluate(pos, false);
+      auto [nnPositional, nnPsq] = NNUE::evaluate(pos);
+      v = nnPositional + nnPsq;
       v = pos.side_to_move() == WHITE ? v : -v;
-      ss << "NNUE evaluation        " << to_cp(v) << " (white side)\n";
+      ss << "NNUE unadjusted evaluation        " << to_cp(v) << " (white side)\n";
   }
 
-  v = evaluate(pos);
+  v = evaluate(pos).first;
   v = pos.side_to_move() == WHITE ? v : -v;
   ss << "Final evaluation       " << to_cp(v) << " (white side)";
   if (Eval::useNNUE)
