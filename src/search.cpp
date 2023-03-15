@@ -1077,7 +1077,10 @@ moves_loop: // When in check, search starts here
               value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
               ss->excludedMove = MOVE_NONE;
 
-              if (value < singularBeta)
+              if (singularBeta >= beta)
+                  return singularBeta;
+
+              else if (value < singularBeta)
               {
                   extension = 1;
                   singularQuietLMR = !ttCapture;
@@ -1097,8 +1100,7 @@ moves_loop: // When in check, search starts here
               // search without the ttMove. So we assume this expected Cut-node is not singular,
               // that multiple moves fail high, and we can prune the whole subtree by returning
               // a soft bound.
-              else if (singularBeta >= beta)
-                  return singularBeta;
+
 
               // If the eval of ttMove is greater than beta, we reduce it (negative extension)
               else if (ttValue >= beta)
