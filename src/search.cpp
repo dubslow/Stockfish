@@ -1158,20 +1158,6 @@ moves_loop: // When in check, search starts here
       // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
-      ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[movedPiece][to_sq(move)]
-                     + (*contHist[1])[movedPiece][to_sq(move)]
-                     + (*contHist[3])[movedPiece][to_sq(move)]
-                     - 4182;
-
-      if (depth <= 0) // mid-loop depth reductions may go all the way...
-      {
-          // by earlier assert, not first move, so off PV
-          value = qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha);
-          // skip regular search/LMR/etc
-          goto undo_move_and_update_search;
-      }
-
       // Decrease reduction if position is or has been on the PV
       // and node is not likely to fail low. (~3 Elo)
       if (   ss->ttPv
@@ -1191,7 +1177,7 @@ moves_loop: // When in check, search starts here
           r++;
 
       // Decrease reduction for PvNodes based on depth (~2 Elo)
-      if (PvNode)
+      if (PvNode && depth > 0)
           r -= 1 + 12 / (3 + depth);
 
       // Decrease reduction if ttMove has been singularly extended (~1 Elo)
@@ -1212,14 +1198,26 @@ moves_loop: // When in check, search starts here
           && (*contHist[0])[movedPiece][to_sq(move)] >= 3722)
           r--;
 
+      ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
+                     + (*contHist[0])[movedPiece][to_sq(move)]
+                     + (*contHist[1])[movedPiece][to_sq(move)]
+                     + (*contHist[3])[movedPiece][to_sq(move)]
+                     - 4182;
+
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
       r -= ss->statScore / (11791 + 3992 * (depth > 6 && depth < 19));
 
+
+      if (depth <= 0) // mid-loop depth reductions may go all the way...
+      {
+          // by earlier assert, not first move, so off PV
+          value = qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha);
+      }
       // Step 17. Late moves reduction / extension (LMR, ~117 Elo)
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
       // cases where we extend a son if it has good chances to be "interesting".
-      if (    depth >= 2
+      else if (    depth >= 2
           &&  moveCount > 1 + (PvNode && ss->ply <= 1)
           && (   !ss->ttPv
               || !capture
@@ -1265,7 +1263,6 @@ moves_loop: // When in check, search starts here
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth - (r > 4), !cutNode);
       }
 
-undo_move_and_update_search: // If we did QS only (but it may have failed high)
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
