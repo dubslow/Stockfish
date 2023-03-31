@@ -1068,7 +1068,7 @@ moves_loop: // When in check, search starts here
 
       // Step 15. Extensions (~100 Elo)
       // We take care to not overdo to avoid search getting stuck.
-      if (depth > 0 && ss->ply < thisThread->rootDepth * 2)
+      if (ss->ply < thisThread->rootDepth * 2)
       {
           // Singular extension search (~94 Elo). If all moves but one fail low on a
           // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
@@ -1208,9 +1208,9 @@ moves_loop: // When in check, search starts here
       r -= ss->statScore / (11791 + 3992 * (depth > 6 && depth < 19));
 
 
-      if (depth <= 0) // mid-loop depth reductions may go all the way...
+      if (newDepth < 0) // if we've mid-loop-reduced depth to 0, modulo extensions
       {
-          // by earlier assert, not first move, so off PV
+          // by earlier assert, not first move, so off PV (but a fail high will be re-searched in next clause)
           value = qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha);
       }
       // Step 17. Late moves reduction / extension (LMR, ~117 Elo)
