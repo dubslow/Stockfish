@@ -977,6 +977,8 @@ moves_loop: // When in check, search starts here
       if (PvNode)
           (ss+1)->pv = nullptr;
 
+      assert(depth > 0 || (!rootNode && moveCount > 1));
+
       extension = 0;
       capture = pos.capture_stage(move);
       movedPiece = pos.moved_piece(move);
@@ -991,6 +993,7 @@ moves_loop: // When in check, search starts here
 
       // Step 14. Pruning at shallow depth (~120 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
+          && depth > 0
           && pos.non_pawn_material(us)
           && bestValue > VALUE_TB_LOSS_IN_MAX_PLY)
       {
@@ -1065,7 +1068,7 @@ moves_loop: // When in check, search starts here
 
       // Step 15. Extensions (~100 Elo)
       // We take care to not overdo to avoid search getting stuck.
-      if (ss->ply < thisThread->rootDepth * 2)
+      if (depth > 0 && ss->ply < thisThread->rootDepth * 2)
       {
           // Singular extension search (~94 Elo). If all moves but one fail low on a
           // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
@@ -1155,6 +1158,20 @@ moves_loop: // When in check, search starts here
       // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
+      ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
+                     + (*contHist[0])[movedPiece][to_sq(move)]
+                     + (*contHist[1])[movedPiece][to_sq(move)]
+                     + (*contHist[3])[movedPiece][to_sq(move)]
+                     - 4182;
+
+      if (depth <= 0) // mid-loop depth reductions may go all the way...
+      {
+          // by earlier assert, not first move, so off PV
+          value = qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha);
+          // skip regular search/LMR/etc
+          goto undo_move_and_update_search;
+      }
+
       // Decrease reduction if position is or has been on the PV
       // and node is not likely to fail low. (~3 Elo)
       if (   ss->ttPv
@@ -1194,12 +1211,6 @@ moves_loop: // When in check, search starts here
       if (move == ss->killers[0]
           && (*contHist[0])[movedPiece][to_sq(move)] >= 3722)
           r--;
-
-      ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
-                     + (*contHist[0])[movedPiece][to_sq(move)]
-                     + (*contHist[1])[movedPiece][to_sq(move)]
-                     + (*contHist[3])[movedPiece][to_sq(move)]
-                     - 4182;
 
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
       r -= ss->statScore / (11791 + 3992 * (depth > 6 && depth < 19));
@@ -1265,6 +1276,7 @@ moves_loop: // When in check, search starts here
           value = -search<PV>(pos, ss+1, -beta, -alpha, newDepth, false);
       }
 
+undo_move_and_update_search: // If we did QS only
       // Step 19. Undo move
       pos.undo_move(move);
 
@@ -1339,13 +1351,11 @@ moves_loop: // When in check, search starts here
                   alpha = value;
 
                   // Reduce other moves if we have found at least one score improvement (~1 Elo)
-                  if (   depth > 1
+                  if (   !rootNode
                       && depth < 6
                       && beta  <  10534
                       && alpha > -10534)
                       depth -= 1;
-
-                  assert(depth > 0);
               }
               else
               {
