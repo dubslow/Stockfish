@@ -1177,7 +1177,7 @@ moves_loop: // When in check, search starts here
           r++;
 
       // Decrease reduction for PvNodes based on depth (~2 Elo)
-      if (PvNode)
+      if (PvNode && depth > 0)
           r -= 1 + 12 / (3 + depth);
 
       // Decrease reduction if ttMove has been singularly extended (~1 Elo)
@@ -1208,7 +1208,12 @@ moves_loop: // When in check, search starts here
       r -= ss->statScore / (11791 + 3992 * (depth > 6 && depth < 19));
 
 
-      if (newDepth < 0) // if we've mid-loop-reduced depth to 0, modulo extensions
+      // In general we want to cap the LMR depth search at newDepth, but when
+      // reduction is negative, we allow this move a limited search extension
+      // beyond the first move depth. This may lead to hidden double extensions.
+      Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
+
+      if (d < 0) // if we've mid-loop-reduced depth to 0, then nD < 0, modulo extensions/reductions
       {
           // by earlier assert, not first move, so off PV (but a fail high will be re-searched in next clause)
           value = qsearch<NonPV>(pos, ss+1, -(alpha+1), -alpha);
@@ -1223,10 +1228,6 @@ moves_loop: // When in check, search starts here
               || !capture
               || (cutNode && (ss-1)->moveCount > 1)))
       {
-          // In general we want to cap the LMR depth search at newDepth, but when
-          // reduction is negative, we allow this move a limited search extension
-          // beyond the first move depth. This may lead to hidden double extensions.
-          Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
