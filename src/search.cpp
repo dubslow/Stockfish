@@ -295,10 +295,7 @@ void Thread::search() {
   {
 
       int rootComplexity;
-      if (Eval::useNNUE)
-          Eval::NNUE::evaluate(rootPos, true, &rootComplexity);
-      else
-          Eval::evaluate(rootPos, &rootComplexity);
+      Eval::evaluate(rootPos, &rootComplexity);
 
       mainThread->complexity = std::min(1.03 + (rootComplexity - 241) / 1552.0, 1.45);
 
