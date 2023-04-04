@@ -660,7 +660,7 @@ namespace {
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < 90)
+        if (pos.rule50_count() < 9 * Position::shuffleMax / 10)
             return ttValue;
     }
 
@@ -1686,7 +1686,7 @@ moves_loop: // When in check, search starts here
 
     if (v >= VALUE_TB_WIN_IN_MAX_PLY)  // TB win or better
     {
-        if (v >= VALUE_MATE_IN_MAX_PLY && VALUE_MATE - v > 99 - r50c)
+        if (v >= VALUE_MATE_IN_MAX_PLY && VALUE_MATE - v >= Position::shuffleMax - r50c)
             return VALUE_MATE_IN_MAX_PLY - 1; // do not return a potentially false mate score
 
         return v - ply;
@@ -1694,7 +1694,7 @@ moves_loop: // When in check, search starts here
 
     if (v <= VALUE_TB_LOSS_IN_MAX_PLY) // TB loss or worse
     {
-        if (v <= VALUE_MATED_IN_MAX_PLY && VALUE_MATE + v > 99 - r50c)
+        if (v <= VALUE_MATED_IN_MAX_PLY && VALUE_MATE + v >= Position::shuffleMax - r50c)
             return VALUE_MATED_IN_MAX_PLY + 1; // do not return a potentially false mate score
 
         return v + ply;
