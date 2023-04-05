@@ -1459,11 +1459,10 @@ moves_loop: // When in check, search starts here
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
-    // Decide whether or not to include checks: this fixes also the type of
-    // TT entry depth that we are going to use. Note that in qsearch we use
-    // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-    ttDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
-                                                      : DEPTH_QS_NO_CHECKS;
+    // In qsearch we use only two types of depth in TT: DEPTH_QS_ALL or
+    // DEPTH_QS_NO_CHECKS. If in check, we search all evasions, and use ALL.
+    ttDepth = ss->inCheck || depth > DEPTH_QS_NO_CHECKS ? DEPTH_QS_ALL
+                                                        : DEPTH_QS_NO_CHECKS;
 
     // Step 3. Transposition table lookup
     posKey = pos.key();
@@ -1527,9 +1526,12 @@ moves_loop: // When in check, search starts here
                                           nullptr                   , (ss-6)->continuationHistory };
 
     // Initialize a MovePicker object for the current position, and prepare
-    // to search the moves. Because the depth is <= 0 here, only captures,
-    // queen promotions, and other checks (only if depth >= DEPTH_QS_CHECKS)
-    // will be generated.
+    // to search the moves. Because the depth is <= 0 here, we search only "tactical"
+    // moves to fight the horizon effect. If in check, simply search all evasions,
+    // otherwise we reduce the kinds of moves searched in three stages:
+    // 1) search all captures then all checks
+    // 2) if (depth <= DEPTH_QS_NO_CHECKS) search captures only
+    // 3) if (depth <= DEPTH_QS_RECAPTURES) search recaptures only
     Square prevSq = (ss-1)->currentMove != MOVE_NULL ? to_sq((ss-1)->currentMove) : SQ_NONE;
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
                                       &thisThread->captureHistory,
