@@ -30,6 +30,9 @@
 
 namespace Stockfish {
 
+// Per commit f7b3f0e, we use `bool(depth8)` to test if an entry is occupied. However we also need to
+// store negative depths for QS, so we add/subtract DEPTH_OFFSET, which only exists for this purpose.
+
 // Populates the TTEntry with a new node's data, possibly
 // overwriting an old position. The update is not atomic and can be racy.
 void TTEntry::save(
