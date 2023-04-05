@@ -221,13 +221,17 @@ constexpr Value PieceValue[PHASE_NB][PIECE_NB] = {
 using Depth = int;
 
 enum : int {
-  DEPTH_QS_CHECKS     =  0,
+  // In QS, either we search evasions or else limit in 3 stages:
+  // The basic stage is searching all captures+checks, then we omit checks,
+  // and finally we search only *re*captures on the previous square.
+  DEPTH_QS_ALL        =  0,
   DEPTH_QS_NO_CHECKS  = -1,
-  DEPTH_QS_RECAPTURES = -5,
+  DEPTH_QS_RECAPTURES = DEPTH_QS_NO_CHECKS - 4,
 
-  DEPTH_NONE   = -6,
-
-  DEPTH_OFFSET = -7 // value used only for TT entry occupancy check
+  // NONE is used everywhere as the nonvalue,
+  // and OFFSET is used only in TT entry occupancy check (see f7b3f0e)
+  DEPTH_NONE   = DEPTH_QS_RECAPTURES - 1, // -6
+  DEPTH_OFFSET = DEPTH_NONE - 1 // -7
 };
 
 enum Square : int {
