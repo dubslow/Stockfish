@@ -187,12 +187,19 @@ constexpr Value PieceValue[PIECE_NB] = {
 using Depth = int;
 
 enum : int {
-    DEPTH_QS_CHECKS    = 0,
-    DEPTH_QS_NO_CHECKS = -1,
+  // With depth <= 0, we "should" be using static eval only, but volatile/tactical moves may confuse
+  // the static eval. To fight this horizon effect, we implement qsearch of tactical moves only to
+  // achieve static eval stability. See https://www.chessprogramming.org/Horizon_Effect
+  // If in check, simply search all evasions, otherwise
+  // 1) search all captures then all checks
+  // 2) search captures only
+  DEPTH_QS_CHECKS =  0,
+  DEPTH_QS_NORMAL = -1,
 
-    DEPTH_NONE = -6,
-
-    DEPTH_OFFSET = -7  // value used only for TT entry occupancy check
+  // _NONE is used throughout the codebase as the non-value,
+  // and _OFFSET is used only for the TT entry occupancy check (see tt.cpp)
+  DEPTH_NONE   = -6,
+  DEPTH_OFFSET = -7
 };
 
 // clang-format off
