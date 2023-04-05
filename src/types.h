@@ -222,7 +222,7 @@ using Depth = int;
 
 enum : int {
   DEPTH_QS_CHECKS     =  0,
-  DEPTH_QS_NO_CHECKS  = DEPTH_QS_CHECKS - 1,
+  DEPTH_QS_NO_CHECKS  = DEPTH_QS_CHECKS - 4,
 
   DEPTH_QS_RECAPTURES = -5,
 
