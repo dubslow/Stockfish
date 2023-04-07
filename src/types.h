@@ -225,8 +225,8 @@ enum : int {
   // The basic stage is searching all captures+checks, then we omit checks,
   // and finally we search only *re*captures on the previous square.
   DEPTH_QS_ALL        =  0,
-  DEPTH_QS_NO_CHECKS  = -1,
-  DEPTH_QS_RECAPTURES = DEPTH_QS_NO_CHECKS - 4,
+  DEPTH_QS_NO_CHECKS  = -3,
+  DEPTH_QS_RECAPTURES = DEPTH_QS_NO_CHECKS - 2,
 
   // NONE is used everywhere as the nonvalue,
   // and OFFSET is used only in TT entry occupancy check (see f7b3f0e)
