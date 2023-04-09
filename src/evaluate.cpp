@@ -1060,6 +1060,10 @@ Value Eval::evaluate(const Position& pos, int* complexity) {
       v = Evaluation<NO_TRACE>(pos).value();
   else
   {
+      // NNUE code wouldn't crash when this fails, but the utility of its output
+      // and search itself are predicated on this.
+      assert(!pos.checkers());
+
       int nnueComplexity;
       int scale = 1001 + 5 * pos.count<PAWN>() + 61 * pos.non_pawn_material() / 4096;
 
