@@ -557,6 +557,24 @@ bool Search::Worker::iterative_deepening() {
         // If the skill level is enabled and time is up, pick a sub-optimal best move
         if (skill.enabled() && skill.time_to_pick(rootDepth))
             skill.pick_best(rootMoves, multiPV);
+            
+        // start early exit analysis at depth 5
+        const int startDepth = 5;
+        if (completedDepth >= startDepth)
+        {
+           int wdl_w = Stockfish::win_rate_model( bestValue, rootPos.game_ply());
+           int wdl_l = Stockfish::win_rate_model(-bestValue, rootPos.game_ply());
+           int wdl_d = 1000 - wdl_w - wdl_l;
+           // final target a 400 - 600 draw rate.
+           // initiall allowing the full interval, but narrowing down as completedDepth is reached
+           const int target = 400;
+           double ratio   = std::pow(double(Limits.depth - completedDepth) / Limits.depth, 0.5);
+           double startit = std::pow(double(Limits.depth - startDepth) / Limits.depth, 0.5);
+           int margin = target * ratio / startit;
+           // outside ofthe interval, exit early
+           if (wdl_d <= target - margin || wdl_d >= 1000 - target + margin)
+               Threads.stop = true;
+        }
 
         // Use part of the gained time from a previous stable move for the current move
         for (auto&& th : threads)

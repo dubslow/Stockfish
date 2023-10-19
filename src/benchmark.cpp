@@ -433,6 +433,7 @@ std::vector<std::string> setup_bench(const std::string& currentFen, std::istream
     list.emplace_back("setoption name Threads value " + threads);
     list.emplace_back("setoption name Hash value " + ttSize);
     list.emplace_back("ucinewgame");
+    list.emplace_back("setoption name UCI_showWDL value true");
 
     for (const std::string& fen : fens)
         if (fen.find("setoption") != std::string::npos)
