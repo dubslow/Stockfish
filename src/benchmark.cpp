@@ -409,6 +409,7 @@ std::tuple<std::vector<std::string>, std::string> setup_bench(const std::string&
     list.emplace_back("setoption name Threads value " + threads);
     list.emplace_back("setoption name Hash value " + ttSize);
     list.emplace_back("ucinewgame");
+    list.emplace_back("setoption name UCI_showWDL value true");
     goCmd = limitType == "eval" ? "eval" : "go " + limitType + " " + limit;
 
     if (fenFile == "default")

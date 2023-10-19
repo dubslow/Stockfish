@@ -117,7 +117,7 @@ class Engine {
     std::string                          thread_allocation_information_as_string() const;
     std::string                          thread_binding_information_as_string() const;
 
-   private:
+   public:
     const std::filesystem::path binaryDirectory;
 
     NumaReplicationContext numaContext;

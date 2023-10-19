@@ -29,6 +29,8 @@
 
 namespace Stockfish {
 
+int win_rate_model(Value v, const Position& pos);
+
 class Position;
 class Move;
 class Score;
