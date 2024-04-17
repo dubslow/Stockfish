@@ -118,12 +118,39 @@ void TranspositionTable::clear(size_t threadCount) {
 // TTEntry t2 if its replace value is greater than that of t2.
 TTEntry* TranspositionTable::probe(const Key key, bool& found) const {
 
-    TTEntry* const tte   = first_entry(key);
+    uint64_t index;
+    TTEntry* const tte   = first_entry(key, &index);
     const uint16_t key16 = uint16_t(key);  // Use the low 16 bits as key inside the cluster
 
     for (int i = 0; i < ClusterSize; ++i)
         if (tte[i].key16 == key16 || !tte[i].depth8)
         {
+            if (tte[i].key16 == key16 && entry_key_tracker[key16].size() > 1)
+            {
+                //std::cerr << ">>>>>entry key collision! " << i << "th entry in the cluster. key: " << key << ", entrykey: " << key16 << ", index: " << index << std::endl;
+                //std::cerr << "this entrykey has previously seen other keys: ";
+                //for (auto& k : entry_key_tracker[key16])
+                //    if (k != key)
+                //        std::cerr << k << ", ";
+                //std::cerr << std::endl;
+                //std::cerr << "this    index has previously seen other keys: ";
+                //for (auto& k : index_tracker[index])
+                //    if (k != key)
+                //        std::cerr << k << ", ";
+                //std::cerr << std::endl;
+                // set intersection. c++ sux.
+                std::set<uint64_t> intersection;
+                std::set_intersection(entry_key_tracker[key16].begin(), entry_key_tracker[key16].end(), index_tracker[index].begin(), index_tracker[index].end(),
+                                      std::inserter(intersection, intersection.begin()));
+                for (auto k2 : intersection)
+                    if (k2 != key)
+                    {
+                        std::cerr << ">>>>>DOUBLE COLLISION FAKE TT RESULT???? key: " << key << ", index: " << index << ", key16: " << key16  << ", older key: " << k2 << std::endl;
+                        std::cerr << "entry_key_tracker.size() = " << entry_key_tracker.size() << ", index_tracker.size() = " << index_tracker.size() << std::endl;
+                        exit(-1);
+                    }
+            } else
+                entry_key_tracker[key16].insert(key);
             constexpr uint8_t lowerBits = GENERATION_DELTA - 1;
 
             // Refresh with new generation, keeping the lower bits the same.

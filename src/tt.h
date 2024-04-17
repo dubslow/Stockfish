@@ -21,6 +21,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
+#include <map>
+#include <set>
 
 #include "misc.h"
 #include "types.h"
@@ -59,7 +62,6 @@ struct TTEntry {
     int16_t  value16;
     int16_t  eval16;
 };
-
 
 // A TranspositionTable is an array of Cluster, of size clusterCount. Each
 // cluster consists of ClusterSize number of TTEntry. Each non-empty TTEntry
@@ -102,8 +104,20 @@ class TranspositionTable {
     void     resize(size_t mbSize, int threadCount);
     void     clear(size_t threadCount);
 
-    TTEntry* first_entry(const Key key) const {
-        return &table[mul_hi64(key, clusterCount)].entry[0];
+    TTEntry* first_entry(const Key key, uint64_t *_index = nullptr) const {
+        uint64_t index = mul_hi64(key, clusterCount);
+        if (index_tracker[index].size() > 1)
+        {
+            //std::cerr << "index collision! " << clusterCount << " clusters. key: " << key << ", index: " << index << std::endl;
+            //std::cerr << "this index has previously seen keys: ";
+            //for (auto& k : index_tracker[index])
+            //  std::cerr << k << ", ";
+            //std::cerr << std::endl;
+        }
+        else
+            index_tracker[index].insert(key);
+        if (_index) *_index = index;
+        return &table[index].entry[0];
     }
 
     uint8_t generation() const { return generation8; }
@@ -114,6 +128,10 @@ class TranspositionTable {
     size_t   clusterCount;
     Cluster* table       = nullptr;
     uint8_t  generation8 = 0;  // Size must be not bigger than TTEntry::genBound8
+
+    mutable std::map<uint64_t, std::set<uint64_t>> index_tracker;
+    mutable std::map<uint16_t, std::set<uint64_t>> entry_key_tracker;
+
 };
 
 }  // namespace Stockfish
