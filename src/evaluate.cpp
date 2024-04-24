@@ -50,13 +50,14 @@ int Eval::simple_eval(const Position& pos, Color c) {
 Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
                      const Position&                pos,
                      Eval::NNUE::AccumulatorCaches& caches,
-                     int                            optimism) {
+                     int                            optimism,
+                     Depth                          depth)    {
 
     assert(!pos.checkers());
 
     int  simpleEval = simple_eval(pos, pos.side_to_move());
-    bool smallNet   = std::abs(simpleEval) > SmallNetThreshold;
-    bool psqtOnly   = std::abs(simpleEval) > PsqtOnlyThreshold;
+    bool smallNet   = std::abs(simpleEval) > small_net_threshold(depth);
+    bool psqtOnly   = std::abs(simpleEval) > psqt_only_threshold(depth);
     int  nnueComplexity;
     int  v;
 
@@ -114,7 +115,7 @@ std::string Eval::trace(Position& pos, const Eval::NNUE::Networks& networks) {
     v       = pos.side_to_move() == WHITE ? v : -v;
     ss << "NNUE evaluation        " << 0.01 * UCIEngine::to_cp(v, pos) << " (white side)\n";
 
-    v = evaluate(networks, pos, *caches, VALUE_ZERO);
+    v = evaluate(networks, pos, *caches, VALUE_ZERO, 1);
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "Final evaluation       " << 0.01 * UCIEngine::to_cp(v, pos) << " (white side)";
     ss << " [with scaled NNUE, ...]";
