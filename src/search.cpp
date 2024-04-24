@@ -715,7 +715,7 @@ Value Search::Worker::search(
         if (unadjustedStaticEval == VALUE_NONE)
             unadjustedStaticEval = evaluate(networks, pos, refreshTable, thisThread->optimism[us], depth);
         else if (PvNode)
-            Eval::NNUE::hint_common_parent_position(pos, networks, refreshTable);
+            Eval::NNUE::hint_common_parent_position(pos, networks, refreshTable, depth);
 
         ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos, depth);
 
