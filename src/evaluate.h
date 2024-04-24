@@ -53,7 +53,8 @@ Value evaluate(const NNUE::Networks&          networks,
                const Position&                pos,
                Eval::NNUE::AccumulatorCaches& caches,
                int                            optimism,
-               Depth                          depth);
+               Depth                          depth,
+               size_t                         threadCount = 1);
 }  // namespace Eval
 
 }  // namespace Stockfish

@@ -64,7 +64,8 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
                      const Position&                pos,
                      Eval::NNUE::AccumulatorCaches& caches,
                      int                            optimism,
-                     Depth                          depth)    {
+                     Depth                          depth,
+                     size_t                         threadCount)    {
 
     assert(!pos.checkers());
 
