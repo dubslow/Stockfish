@@ -58,7 +58,7 @@ int   simple_eval(const Position& pos, Color c);
 Value evaluate(const NNUE::Networks&          networks,
                const Position&                pos,
                Eval::NNUE::AccumulatorCaches& caches,
-               int                            optimism),
+               int                            optimism,
                Depth                          depth);
 }  // namespace Eval
 
