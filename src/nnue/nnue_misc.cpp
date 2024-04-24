@@ -44,11 +44,12 @@ constexpr std::string_view PieceToChar(" PNBRQK  pnbrqk");
 
 void hint_common_parent_position(const Position&    pos,
                                  const Networks&    networks,
-                                 AccumulatorCaches& caches) {
+                                 AccumulatorCaches& caches,
+                                 Depth              depth)  {
 
     int simpleEvalAbs = std::abs(simple_eval(pos, pos.side_to_move()));
-    if (simpleEvalAbs > Eval::SmallNetThreshold)
-        networks.small.hint_common_access(pos, nullptr, simpleEvalAbs > Eval::PsqtOnlyThreshold);
+    if (simpleEvalAbs > Eval::small_net_threshold(depth))
+        networks.small.hint_common_access(pos, nullptr, simpleEvalAbs > Eval::psqt_only_threshold(depth));
     else
         networks.big.hint_common_access(pos, &caches.big, false);
 }
