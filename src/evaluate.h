@@ -24,12 +24,21 @@
 #include "types.h"
 
 namespace Stockfish {
+int xx1=2637, xx2=7, xx3=1780, xx4=20;
+TUNE(xx1,xx3);
+TUNE(SetRange(-40, 40), xx2);
+TUNE(SetRange(-30, 50), xx4);
 
 class Position;
 
 namespace Eval {
 
-constexpr inline int SmallNetThreshold = 1274, PsqtOnlyThreshold = 2389;
+constexpr int psqt_only_threshold(Depth depth) {
+    return xx1 - xx2 * depth;
+}
+constexpr int small_net_threshold(Depth depth) {
+    return xx3 - xx4 * depth;
+}
 
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build and fishtest) to work. Do not change the
@@ -49,7 +58,8 @@ int   simple_eval(const Position& pos, Color c);
 Value evaluate(const NNUE::Networks&          networks,
                const Position&                pos,
                Eval::NNUE::AccumulatorCaches& caches,
-               int                            optimism);
+               int                            optimism),
+               Depth                          depth);
 }  // namespace Eval
 
 }  // namespace Stockfish
