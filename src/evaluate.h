@@ -25,7 +25,7 @@
 
 namespace Stockfish {
 
-inline int SMALLNET = 1274, PSQTONLY = 2389;
+inline int SMALLNET = 1293, PSQTONLY = 2395;
 TUNE(SMALLNET, PSQTONLY);
 
 class Position;
