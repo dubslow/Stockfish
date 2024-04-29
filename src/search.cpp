@@ -53,7 +53,7 @@ b1=10, b2=10891, b3=128, b4=96, b5=67, b6=1877,
 
 c1=14, c2=1667, c3=1446, c4=463, c5=264, c6=153, c7=11, c8=288, c9=18213, c10=20, c11=321, c12=143,
 
-d1=165, d2=65, d3=429, d4=278, d5=264, d6=198,
+d1=165, d2=65, d3=429, d4=278, d5=264, d6=199, d7=198,
 
 e1=4199, e2=64, e3=5060, e4=54, e5=129, e6=62, e7=140, e8=14, e9=28,
 
@@ -1002,20 +1002,21 @@ moves_loop:  // When in check, search starts here
 
             if (capture || givesCheck)
             {
+                Piece capturedPiece = pos.piece_on(move.to_sq());
+                int captHist = thisThread->captureHistory[movedPiece][move.to_sq()][type_of(capturedPiece)];
+
                 // Futility pruning for captures (~2 Elo)
                 if (!givesCheck && lmrDepth < 7 && !ss->inCheck)
                 {
-                    Piece capturedPiece = pos.piece_on(move.to_sq());
                     Value futilityValue =
-                      ss->staticEval + d4 + d5 * lmrDepth + PieceValue[capturedPiece]
-                      + thisThread->captureHistory[movedPiece][move.to_sq()][type_of(capturedPiece)]
-                          / 7;
+                      ss->staticEval + d4 + d5 * lmrDepth + PieceValue[capturedPiece] + captHist / 7;
                     if (futilityValue <= alpha)
                         continue;
                 }
 
                 // SEE based pruning for captures and checks (~11 Elo)
-                if (!pos.see_ge(move, -d6 * depth))
+                int seeHist = std::clamp(captHist / 32, -d6 * depth, d6 * depth);
+                if (!pos.see_ge(move, -d7 * depth - seeHist))
                     continue;
             }
             else
