@@ -192,12 +192,12 @@ enum : int {
   // 1) search all captures then all checks
   // 2) search captures only
   DEPTH_QS_ALL        =  0,
-  DEPTH_QS_NO_CHECKS  = -1,
+  DEPTH_QS_NO_CHECKS  = -10,
 
   // _NONE is used throughout the codebase as the non-value,
   // and _OFFSET is used only for the TT entry occupancy check (see tt.cpp)
-  DEPTH_NONE   = -6,
-  DEPTH_OFFSET = -7
+  DEPTH_NONE   = -11,
+  DEPTH_OFFSET = -12
 };
 
 // clang-format off
