@@ -758,17 +758,6 @@ Value Search::Worker::search(
 
     opponentWorsening = ss->staticEval + (ss - 1)->staticEval > 2;
 
-    // Step 7. Razoring (~1 Elo)
-    // If eval is really low check with qsearch if it can exceed alpha, if it can't,
-    // return a fail low.
-    // Adjust razor margin according to cutoffCnt. (~1 Elo)
-    if (eval < alpha - 474 - (326 - 139 * ((ss + 1)->cutoffCnt > 3)) * depth * depth)
-    {
-        value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
-        if (value < alpha)
-            return value;
-    }
-
     // Step 8. Futility pruning: child node (~40 Elo)
     // The depth condition is important for mate finding.
     if (!ss->ttPv && depth < 11
@@ -1084,18 +1073,7 @@ moves_loop:  // When in check, search starts here
                 // If the ttMove is assumed to fail high over current beta (~7 Elo)
                 else if (ttValue >= beta)
                     extension = -3;
-
-                // If we are on a cutNode but the ttMove is not assumed to fail high over current beta (~1 Elo)
-                else if (cutNode)
-                    extension = -2;
             }
-
-            // Extension for capturing the previous moved piece (~0 Elo on STC, ~1 Elo on LTC)
-            else if (PvNode && move == ttMove && move.to_sq() == prevSq
-                     && thisThread->captureHistory[movedPiece][move.to_sq()]
-                                                  [type_of(pos.piece_on(move.to_sq()))]
-                          > 3748)
-                extension = 1;
         }
 
         // Add extension to new depth
@@ -1167,20 +1145,12 @@ moves_loop:  // When in check, search starts here
             {
                 // Adjust full-depth search based on LMR results - if the result
                 // was good enough search deeper, if it was bad enough search shallower.
-                const bool doDeeperSearch    = value > (bestValue + 40 + 2 * newDepth);  // (~1 Elo)
                 const bool doShallowerSearch = value < bestValue + newDepth;             // (~2 Elo)
 
-                newDepth += doDeeperSearch - doShallowerSearch;
+                newDepth += 0 - doShallowerSearch;
 
                 if (newDepth > d)
                     value = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, newDepth, !cutNode);
-
-                // Post LMR continuation history updates (~1 Elo)
-                int bonus = value <= alpha ? -stat_malus(newDepth)
-                          : value >= beta  ? stat_bonus(newDepth)
-                                           : 0;
-
-                update_continuation_histories(ss, movedPiece, move.to_sq(), bonus);
             }
         }
 
@@ -1388,15 +1358,6 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     assert(PvNode || (alpha == beta - 1));
     assert(depth <= 0);
 
-    // Check if we have an upcoming move that draws by repetition, or if
-    // the opponent had an alternative move earlier to this position. (~1 Elo)
-    if (alpha < VALUE_DRAW && pos.has_game_cycle(ss->ply))
-    {
-        alpha = value_draw(this->nodes);
-        if (alpha >= beta)
-            return alpha;
-    }
-
     Move      pv[MAX_PLY + 1];
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
@@ -1435,7 +1396,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Decide the replacement and cutoff priority of the qsearch TT entries
-    ttDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+    ttDepth = DEPTH_QS;
 
     // Step 3. Transposition table lookup
     posKey  = pos.key();
