@@ -1015,7 +1015,8 @@ moves_loop:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures and checks (~11 Elo)
-                int seeHist = std::clamp(captHist / 32, -d6 * depth, d6 * depth);
+                // TUNE(d9); TUNE(SetRange(10,150), d8);
+                int seeHist = std::clamp(captHist / d8, -d6 * depth, d9 * depth);
                 if (!pos.see_ge(move, -d7 * depth - seeHist))
                     continue;
             }
