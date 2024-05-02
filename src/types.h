@@ -187,8 +187,7 @@ constexpr Value PieceValue[PIECE_NB] = {
 using Depth = int;
 
 enum : int {
-    DEPTH_QS_CHECKS    = 0,
-    DEPTH_QS_NO_CHECKS = -1,
+    DEPTH_QS = 0,
 
     DEPTH_NONE = -6,
 

@@ -1436,7 +1436,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Decide the replacement and cutoff priority of the qsearch TT entries
-    ttDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+    ttDepth = DEPTH_QS;
 
     // Step 3. Transposition table lookup
     posKey  = pos.key();
