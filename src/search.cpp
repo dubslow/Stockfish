@@ -1478,9 +1478,8 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     // Note that unlike regular search, which stores the literal depth into the
     // transposition table, from qsearch we only store the current movegen stage
-    // as "depth". If in check, we search all evasions and thus store DEPTH_QS_CHECKS.
-    // Evasions may be quiet, and _CHECKS includes quiets.
-    Depth qsTtDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NORMAL;
+    // as "depth".
+    Depth qsTtDepth = DEPTH_QS_NORMAL;
 
     // Step 3. Transposition table lookup
     posKey                         = pos.key();
