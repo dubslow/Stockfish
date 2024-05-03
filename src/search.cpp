@@ -969,8 +969,9 @@ moves_loop:  // When in check, search starts here
             if (capture || givesCheck)
             {
                 Piece capturedPiece = pos.piece_on(move.to_sq());
+                auto  capturedType = type_of(capturedPiece);
                 int   captHist =
-                  thisThread->captureHistory[movedPiece][move.to_sq()][type_of(capturedPiece)];
+                  thisThread->captureHistory[movedPiece][move.to_sq()][capturedType];
 
                 // Futility pruning for captures (~2 Elo)
                 if (!givesCheck && lmrDepth < 7 && !ss->inCheck)
@@ -983,6 +984,11 @@ moves_loop:  // When in check, search starts here
 
                 // SEE based pruning for captures and checks (~11 Elo)
                 int seeHist = std::clamp(captHist / 32, -197 * depth, 196 * depth);
+                if (type_of(movedPiece) != PAWN && capturedType != PAWN)
+                {
+                    // correctionHistory is already depth-adjusted, and fairly small
+                    seeHist += std::clamp(thisThread->correctionHistory[us][pawn_structure_index<Correction>(pos)] / 4, -10*depth, 10*depth);
+                }
                 if (!pos.see_ge(move, -186 * depth - seeHist))
                     continue;
             }
