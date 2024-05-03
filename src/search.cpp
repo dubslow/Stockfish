@@ -981,6 +981,9 @@ moves_loop:  // When in check, search starts here
 
                 // SEE based pruning for captures and checks (~11 Elo)
                 int seeHist = std::clamp(captHist / 32, -199 * depth, 199 * depth);
+                // something something only adjust pawn-preserving moves...?
+                // correctionHistory is already depth-adjusted, and fairly small
+                seeHist += std::clamp(thisThread->correctionHistory[us][pawn_structure_index<Correction>(pos)] / 4, -75, 75);
                 if (!pos.see_ge(move, -203 * depth - seeHist))
                     continue;
             }
