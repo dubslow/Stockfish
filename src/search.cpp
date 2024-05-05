@@ -1510,6 +1510,8 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     // Initialize a MovePicker object for the current position, and prepare to search the moves.
     // We presently use two stages of qs movegen, first captures+checks, then captures only.
     // (When in check, we simply search all evasions.) See also comments in types.h.
+    // (Presently, having the checks stage is worth only 1 Elo, and may be removable in the near future,
+    // which would result in only a single stage of QS movegen.)
     Square     prevSq = ((ss - 1)->currentMove).is_ok() ? ((ss - 1)->currentMove).to_sq() : SQ_NONE;
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory, &thisThread->captureHistory,
                   contHist, &thisThread->pawnHistory);
