@@ -187,18 +187,15 @@ constexpr Value PieceValue[PIECE_NB] = {
 using Depth = int;
 
 enum : int {
-  // With depth <= 0, we "should" be using static eval only, but tactical moves may confuse the
-  // static eval. To fight this horizon effect, we implement qsearch of tactical moves only.
-  // See https://www.chessprogramming.org/Horizon_Effect
-  // If in check, simply search all evasions, otherwise
-  // 1) search all captures then all checks
-  // 2) search captures only
+  // The following DEPTH_ constants are used for TT entries from qsearch. In regular search,
+  // TT depth is literal: the search depth (effort) used to make the corresponding TT value.
+  // In qsearch, however, we only store which movegen stage of QS we were in when saving the
+  // ttentry (which should thus compare lower than any regular search depth).
   DEPTH_QS_CHECKS =  0,
   DEPTH_QS_NORMAL = -1,
-  // Note that depth can (in principle) go arbitrarily negative, however in TT usage we never
-  // store a depth lower than _NORMAL. For TT entries where no move searching was done at all,
-  // we use _NONE, which should thus be lower than _NORMAL. _OFFSET is used only for the TT
-  // entry occupancy check (see tt.cpp), and should be lower than _NONE.
+  // For TT entries where no searching was done at all (whether regular or qsearch) we use
+  // _NONE, which should thus compare lower than any QS or regular depth. _OFFSET is used
+  // only for the TT entry occupancy check (see tt.cpp), and should compare lower than _NONE.
   DEPTH_NONE   = -6,
   DEPTH_OFFSET = -7
 };

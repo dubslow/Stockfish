@@ -1376,8 +1376,11 @@ moves_loop:  // When in check, search starts here
 }
 
 
-// Quiescence search function, which is called by the main search
-// function with zero depth, or recursively with further decreasing depth per call.
+// Quiescence search function, which is called by the main search function with zero depth, or
+// recursively with further decreasing depth per call. With depth <= 0, we "should" be using
+// static eval only, but tactical moves may confuse the static eval. To fight this horizon effect,
+// we implement this qsearch of tactical moves only.
+// See https://www.chessprogramming.org/Horizon_Effect and https://www.chessprogramming.org/Quiescence_Search
 // (~155 Elo)
 template<NodeType nodeType>
 Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
@@ -1435,11 +1438,11 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
-    // Decide the replacement and cutoff priority of qsearch TT entries. Note that we don't
-    // store depths below DEPTH_QS_NORMAL, see comments in types.h. If in check, we search all
-    // evasions and thus store DEPTH_QS_CHECKS.
+    // Note that unlike regular search, which stores literal depth, in QS we only store the
+    // current movegen stage, see comments in types.h. If in check, we search all
+    // evasions and thus store DEPTH_QS_CHECKS. (Evasions may be quiet, and _CHECKS include quiets.)
     ttDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
-                                                   : DEPTH_QS_NORMAL;
+                                                      : DEPTH_QS_NORMAL;
 
     // Step 3. Transposition table lookup
     posKey  = pos.key();
@@ -1505,7 +1508,8 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
                                         (ss - 2)->continuationHistory};
 
     // Initialize a MovePicker object for the current position, and prepare to search the moves.
-    // Because the depth is <= 0, only tactical moves will be generated (see DEPTH_QS_* in types.h)
+    // We presently use two stages of qs movegen, first captures+checks, then captures only.
+    // (When in check, we simply search all evasions.) See also comments in types.h.
     Square     prevSq = ((ss - 1)->currentMove).is_ok() ? ((ss - 1)->currentMove).to_sq() : SQ_NONE;
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory, &thisThread->captureHistory,
                   contHist, &thisThread->pawnHistory);
