@@ -1435,9 +1435,9 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
-    // Decide the replacement and cutoff priority of qsearch TT entries; note that we don't
-    // store depths below DEPTH_QS_NORMAL. If in check, we search all evasions and thus store
-    // DEPTH_QS_CHECKS.
+    // Decide the replacement and cutoff priority of qsearch TT entries. Note that we don't
+    // store depths below DEPTH_QS_NORMAL, see comments in types.h. If in check, we search all
+    // evasions and thus store DEPTH_QS_CHECKS.
     ttDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS
                                                    : DEPTH_QS_NORMAL;
 

@@ -195,10 +195,10 @@ enum : int {
   // 2) search captures only
   DEPTH_QS_CHECKS =  0,
   DEPTH_QS_NORMAL = -1,
-
-  // _NONE is used throughout the codebase as the absence of a value,
-  // and _OFFSET is used only for the TT entry occupancy check (see tt.cpp), and should be lower
-  // than any other value (including the absence value).
+  // Note that depth can (in principle) go arbitrarily negative, however in TT usage we never
+  // store a depth lower than _NORMAL. For TT entries where no move searching was done at all,
+  // we use _NONE, which should thus be lower than _NORMAL. _OFFSET is used only for the TT
+  // entry occupancy check (see tt.cpp), and should be lower than _NONE.
   DEPTH_NONE   = -6,
   DEPTH_OFFSET = -7
 };
