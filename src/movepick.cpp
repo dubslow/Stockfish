@@ -354,10 +354,7 @@ top:
         return select<Next>([&]() { return pos.see_ge(*cur, threshold); });
 
     case QCAPTURE :
-        if (select<Next>([]() { return true; }))
-            return *(cur - 1);
-
-        return Move::none();
+        return select<Next>([]() { return true; });
     }
 
     assert(false);

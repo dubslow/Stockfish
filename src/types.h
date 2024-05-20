@@ -191,7 +191,7 @@ enum : int {
     // TT depth is literal: the search depth (effort) used to make the corresponding TT value.
     // In qsearch, however, TT entries only store the current QS movegen stage (which should thus compare
     // lower than any regular search depth).
-    DEPTH_QS_CHECKS = 0,
+    DEPTH_QS = 0,
     // For TT entries where no searching at all was done (whether regular or qsearch) we use
     // _UNSEARCHED, which should thus compare lower than any QS or regular depth. _ENTRY_OFFSET is used
     // only for the TT entry occupancy check (see tt.cpp), and should thus be lower than _UNSEARCHED.
