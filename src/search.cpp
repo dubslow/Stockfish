@@ -619,8 +619,10 @@ Value Search::Worker::search(
     // At non-PV nodes we check for an early TT cutoff
     if (!PvNode && !excludedMove && tte->depth() > depth
         && ttValue != VALUE_NONE  // Possible in case of TT access race or if !ttHit
-        && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
+       )
     {
+      if (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))
+      {
         // If ttMove is quiet, update move sorting heuristics on TT hit (~2 Elo)
         if (ttMove && ttValue >= beta)
         {
@@ -641,6 +643,12 @@ Value Search::Worker::search(
             return ttValue >= beta && std::abs(ttValue) < VALUE_TB_WIN_IN_MAX_PLY
                    ? (ttValue * 3 + beta) / 4
                    : ttValue;
+      }
+      else // ttbounds are incompatible with current bounds
+      {
+          cutNode = cutNode ||  (ttValue > beta  + 60 + 10*depth); // what was a faillow is suddenly a failhigh?
+          cutNode = cutNode && !(ttValue < alpha - 60 - 10*depth); // what was a failhigh is suddenly a faillow?
+      }
     }
 
     // Step 5. Tablebases probe
