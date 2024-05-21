@@ -620,8 +620,10 @@ Value Search::Worker::search(
     // At non-PV nodes we check for an early TT cutoff
     if (!PvNode && !excludedMove && tte->depth() > depth
         && ttValue != VALUE_NONE  // Possible in case of TT access race or if !ttHit
-        && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
+       )
     {
+      if (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))
+      {
         // If ttMove is quiet, update move sorting heuristics on TT hit (~2 Elo)
         if (ttMove && ttValue >= beta)
         {
@@ -640,6 +642,11 @@ Value Search::Worker::search(
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 90)
             return ttValue;
+      }
+      else // ttbounds are incompatible with current bounds
+      {
+          depth += (depth < 12) && (ttValue >= beta + 450);
+      }
     }
 
     // Step 5. Tablebases probe
