@@ -515,6 +515,8 @@ void Search::Worker::clear() {
     refreshTable.clear(networks[numaAccessToken]);
 }
 
+int B1=213, B2=188, B3=67, B4=941, B5=182, B6=479;
+int P1=11, P3=15143, P5=520, P6=506;
 
 // Main search function for both PV and non-PV nodes.
 template<NodeType nodeType>
@@ -1348,21 +1350,32 @@ moves_loop:  // When in check, search starts here
                          quietCount, capturesSearched, captureCount, depth);
 
     // Bonus for prior countermove that caused the fail low
-    else if (!priorCapture && prevSq != SQ_NONE)
+    else if (prevSq != SQ_NONE)
     {
+      if (!priorCapture)
+      {
         int bonus = (116 * (depth > 5) + 115 * (PvNode || cutNode)
                      + 186 * ((ss - 1)->statScore < -14144) + 121 * ((ss - 1)->moveCount > 9)
                      + 64 * (!ss->inCheck && bestValue <= ss->staticEval - 115)
                      + 137 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81));
+
         update_continuation_histories(ss - 1, pos.piece_on(prevSq), prevSq,
                                       stat_bonus(depth) * bonus / 100);
         thisThread->mainHistory[~us][((ss - 1)->currentMove).from_to()]
           << stat_bonus(depth) * bonus / 200;
-
-
         if (type_of(pos.piece_on(prevSq)) != PAWN && ((ss - 1)->currentMove).type_of() != PROMOTION)
             thisThread->pawnHistory[pawn_structure_index(pos)][pos.piece_on(prevSq)][prevSq]
               << stat_bonus(depth) * bonus / 25;
+      }
+      else
+      {
+        int bonus = (B1 * (depth > P1) + B2 * (PvNode || cutNode)
+                     + B3 * ((ss - 1)->statScore < -P3) + B4 * ((ss - 1)->moveCount > 9)
+                     + B5 * (!ss->inCheck && bestValue <= ss->staticEval - P5)
+                     + B6 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - P6));
+
+        thisThread->captureHistory[pos.piece_on(prevSq)][prevSq][pos.captured_piece()] << stat_bonus(depth) * bonus / 200;
+      }
     }
 
     if (PvNode)
@@ -1396,7 +1409,6 @@ moves_loop:  // When in check, search starts here
 
     return bestValue;
 }
-
 
 // Quiescence search function, which is called by the main search function with zero depth, or
 // recursively with further decreasing depth per call. With depth <= 0, we "should" be using
