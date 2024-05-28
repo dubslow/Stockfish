@@ -515,6 +515,12 @@ void Search::Worker::clear() {
     refreshTable.clear(networks[numaAccessToken]);
 }
 
+int C=0, B1=334, B2=343, B3=343, B4=869;
+int P1=5, P4=9;
+auto BRange = [](int b){return std::pair<int, int>(-b*6, b*6);};
+TUNE(SetRange(BRange), C, B1, B2, B3, B4);
+TUNE(SetRange(1, 20), P1);
+TUNE(SetRange(4, 16), P4);
 
 // Main search function for both PV and non-PV nodes.
 template<NodeType nodeType>
@@ -1343,21 +1349,30 @@ moves_loop:  // When in check, search starts here
                          quietCount, capturesSearched, captureCount, depth);
 
     // Bonus for prior countermove that caused the fail low
-    else if (!priorCapture && prevSq != SQ_NONE)
+    else if (prevSq != SQ_NONE)
     {
+      if (!priorCapture)
+      {
         int bonus = (116 * (depth > 5) + 115 * (PvNode || cutNode)
                      + 186 * ((ss - 1)->statScore < -14144) + 121 * ((ss - 1)->moveCount > 9)
                      + 64 * (!ss->inCheck && bestValue <= ss->staticEval - 115)
                      + 137 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81));
+
         update_continuation_histories(ss - 1, pos.piece_on(prevSq), prevSq,
                                       stat_bonus(depth) * bonus / 100);
         thisThread->mainHistory[~us][((ss - 1)->currentMove).from_to()]
           << stat_bonus(depth) * bonus / 200;
-
-
         if (type_of(pos.piece_on(prevSq)) != PAWN && ((ss - 1)->currentMove).type_of() != PROMOTION)
             thisThread->pawnHistory[pawn_structure_index(pos)][pos.piece_on(prevSq)][prevSq]
               << stat_bonus(depth) * bonus / 25;
+      }
+      else
+      {
+        int bonus = (C + B1 * (depth > P1) + B2 * PvNode + B3 * cutNode
+                     + B4 * ((ss - 1)->moveCount > P4));
+
+        thisThread->captureHistory[pos.piece_on(prevSq)][prevSq][pos.captured_piece()] << stat_bonus(depth) * bonus / 200;
+      }
     }
 
     if (PvNode)
