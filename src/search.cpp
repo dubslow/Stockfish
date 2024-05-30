@@ -760,16 +760,6 @@ Value Search::Worker::search(
 
     opponentWorsening = ss->staticEval + (ss - 1)->staticEval > 2;
 
-    // Step 7. Razoring (~1 Elo)
-    // If eval is really low check with qsearch if it can exceed alpha, if it can't,
-    // return a fail low.
-    if (eval < alpha - 501 - 305 * depth * depth)
-    {
-        value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
-        if (value < alpha)
-            return value;
-    }
-
     // Step 8. Futility pruning: child node (~40 Elo)
     // The depth condition is important for mate finding.
     if (!ss->ttPv && depth < 12
@@ -1450,9 +1440,8 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Note that unlike regular search, which stores literal depth, in QS we only store the
-    // current movegen stage. If in check, we search all evasions and thus store
-    // DEPTH_QS_CHECKS. (Evasions may be quiet, and _CHECKS includes quiets.)
-    ttDepth = ss->inCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NORMAL;
+    // current movegen stage.
+    ttDepth = DEPTH_QS;
 
     // Step 3. Transposition table lookup
     posKey  = pos.key();

@@ -189,15 +189,14 @@ using Depth = int;
 enum : int {
     // The following DEPTH_ constants are used for TT entries and QS movegen stages. In regular search,
     // TT depth is literal: the search depth (effort) used to make the corresponding TT value.
-    // In qsearch, however, TT entries only store the current QS movegen stage (which should thus compare
+    // In qsearch, however, store only that it's QS (which should thus compare
     // lower than any regular search depth).
-    DEPTH_QS_CHECKS = 0,
-    DEPTH_QS_NORMAL = -1,
+    DEPTH_QS = 0,
     // For TT entries where no searching at all was done (whether regular or qsearch) we use
     // _UNSEARCHED, which should thus compare lower than any QS or regular depth. _ENTRY_OFFSET is used
     // only for the TT entry occupancy check (see tt.cpp), and should thus be lower than _UNSEARCHED.
-    DEPTH_UNSEARCHED   = -6,
-    DEPTH_ENTRY_OFFSET = -7
+    DEPTH_UNSEARCHED   = -1,
+    DEPTH_ENTRY_OFFSET = -2
 };
 
 // clang-format off
