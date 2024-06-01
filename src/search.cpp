@@ -764,7 +764,7 @@ Value Search::Worker::search(
     // Step 7. Razoring (~1 Elo)
     // If eval is really low check with qsearch if it can exceed alpha, if it can't,
     // return a fail low.
-    if (eval < alpha - 501 - 305 * depth * depth)
+    if (eval < alpha - 600 - 305 * depth * depth + (priorCapture?0:thisThread->mainHistory[~us][((ss - 1)->currentMove).from_to()] / 8))
     {
         value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
         if (value < alpha)
