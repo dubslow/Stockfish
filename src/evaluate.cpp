@@ -61,16 +61,21 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
 
     int  simpleEval = simple_eval(pos, pos.side_to_move());
     bool smallNet   = use_smallnet(pos);
-    int  nnueComplexity;
     int  v;
 
-    Value nnue = smallNet ? networks.small.evaluate(pos, &caches.small, true, &nnueComplexity)
-                          : networks.big.evaluate(pos, &caches.big, true, &nnueComplexity);
+    auto [psqt, positional] = smallNet ? networks.small.evaluate(pos, &caches.small)
+                          : networks.big.evaluate(pos, &caches.big);
+
+    constexpr int delta = 24;
+    Value nnue =  static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional) / 1024);
+    int nnueComplexity = std::abs(psqt - positional);
 
     // Re-evaluate the position when higher eval accuracy is worth the time spent
     if (smallNet && (nnue * simpleEval < 0 || std::abs(nnue) < 250))
     {
-        nnue     = networks.big.evaluate(pos, &caches.big, true, &nnueComplexity);
+        auto [psqt, positional] = networks.big.evaluate(pos, &caches.big);
+        nnue = static_cast<Value>(((1024 - delta) * psqt + (1024 + delta) * positional) / 1024);
+        nnueComplexity = std::abs(psqt - positional);
         smallNet = false;
     }
 
@@ -109,7 +114,8 @@ std::string Eval::trace(Position& pos, const Eval::NNUE::Networks& networks) {
 
     ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
 
-    Value v = networks.big.evaluate(pos, &caches->big, false);
+    auto [psqt, positional] = networks.big.evaluate(pos, &caches->big);
+    Value v = psqt + positional;
     v       = pos.side_to_move() == WHITE ? v : -v;
     ss << "NNUE evaluation        " << 0.01 * UCIEngine::to_cp(v, pos) << " (white side)\n";
 

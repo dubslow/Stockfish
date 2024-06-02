@@ -40,6 +40,9 @@ enum class EmbeddedNNUEType {
     SMALL,
 };
 
+struct NetworkOutput {
+    std::int32_t psqt, positional;
+};
 
 template<typename Arch, typename Transformer>
 class Network {
@@ -59,10 +62,8 @@ class Network {
     void load(const std::string& rootDirectory, std::string evalfilePath);
     bool save(const std::optional<std::string>& filename) const;
 
-    Value evaluate(const Position&                         pos,
-                   AccumulatorCaches::Cache<FTDimensions>* cache,
-                   bool                                    adjusted   = false,
-                   int*                                    complexity = nullptr) const;
+    NetworkOutput evaluate(const Position&                         pos,
+                   AccumulatorCaches::Cache<FTDimensions>* cache) const;
 
 
     void hint_common_access(const Position&                         pos,
