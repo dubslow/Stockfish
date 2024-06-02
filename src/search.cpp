@@ -111,8 +111,32 @@ struct Skill {
     Move   best = Move::none();
 };
 
+// These two funcs convert to/from tt entries to account for various edge cases...
 Value value_to_tt(Value v, int ply);
 Value value_from_tt(Value v, int ply, int r50c);
+// ...and this is used to save-on-probe tt data, so that we don't experience race conditions after the first/only probe.
+struct TTData {
+    Move  move    = Move::none();
+    Value eval    = VALUE_NONE;
+    Value value   = VALUE_NONE;
+    Depth depth   = DEPTH_UNSEARCHED;
+    Bound bound   = BOUND_NONE;
+    bool  pv      = false;
+    bool  capture = false;
+
+    void copy_entry(const TTEntry* tte, const Position& pos, int ssply, const bool rootNode)
+    {
+        if (!rootNode)
+            move = tte->move();
+        value   = value_from_tt(tte->value(), ssply, pos.rule50_count());
+        depth   = tte->depth();
+        bound   = tte->bound();
+        eval    = tte->eval();
+        pv      = tte->is_pv();
+        capture = move && pos.capture_stage(move);
+    }
+};
+
 void  update_pv(Move* pv, Move move, const Move* childPv);
 void  update_continuation_histories(Stack* ss, Piece pc, Square to, int bonus);
 void  update_refutations(const Position& pos, Stack* ss, Search::Worker& workerThread, Move move);
@@ -607,58 +631,28 @@ Value Search::Worker::search(
     // Step 4. Transposition table lookup.
     Key      posKey = pos.key();
     TTEntry* tte    = tt.probe(posKey, ss->ttHit);
-
-    Move  ttMove;
-    Value ttValue;
-    Depth ttDepth;
-    Bound ttBound;
-    Value ttEval;
-    bool  ttPv, ttCapture;
-
+    TTData   tthit;
     if (rootNode)
-        ttMove = thisThread->rootMoves[thisThread->pvIdx].pv[0];
-
+        tthit.move = thisThread->rootMoves[thisThread->pvIdx].pv[0];
     if (ss->ttHit)
-    {
-        if (!rootNode)
-            ttMove = tte->move();
-
-        ttValue = value_from_tt(tte->value(), ss->ply, pos.rule50_count());
-        ttDepth = tte->depth();
-        ttBound = tte->bound();
-        ttEval  = tte->eval();
-        ttPv    = tte->is_pv();
-    }
-    else
-    {
-        if (!rootNode)
-            ttMove = Move::none();
-
-        ttValue = VALUE_NONE;
-        ttDepth = DEPTH_UNSEARCHED;
-        ttBound = BOUND_NONE;
-        ttEval  = VALUE_NONE;
-        ttPv    = false;
-    }
-
-    ttCapture = ttMove && pos.capture_stage(ttMove);
+        tthit.copy_entry(tte, pos, ss->ply, rootNode);
 
     // At this point, if excluded, skip straight to step 6, static eval. However,
     // to save indentation, we list the condition in all code between here and there.
     if (!excludedMove)
-        ss->ttPv = PvNode || ttPv;
+        ss->ttPv = PvNode || tthit.pv;
 
     // At non-PV nodes we check for an early TT cutoff
-    if (!PvNode && !excludedMove && ttDepth > depth - (ttValue <= beta)
-        && ttValue != VALUE_NONE  // Possible in case of TT access race or if !ttHit
-        && (ttBound & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
+    if (!PvNode && !excludedMove && tthit.depth > depth - (tthit.value <= beta)
+        && tthit.value != VALUE_NONE  // Possible in case of TT access race or if !ttHit
+        && (tthit.bound & (tthit.value >= beta ? BOUND_LOWER : BOUND_UPPER)))
     {
-        // If ttMove is quiet, update move sorting heuristics on TT hit (~2 Elo)
-        if (ttMove && ttValue >= beta)
+        // If tthit.move is quiet, update move sorting heuristics on TT hit (~2 Elo)
+        if (tthit.move && tthit.value >= beta)
         {
-            // Bonus for a quiet ttMove that fails high (~2 Elo)
-            if (!ttCapture)
-                update_quiet_stats(pos, ss, *this, ttMove, stat_bonus(depth));
+            // Bonus for a quiet tthit.move that fails high (~2 Elo)
+            if (!tthit.capture)
+                update_quiet_stats(pos, ss, *this, tthit.move, stat_bonus(depth));
 
             // Extra penalty for early quiet moves of
             // the previous ply (~1 Elo on STC, ~2 Elo on LTC)
@@ -670,7 +664,7 @@ Value Search::Worker::search(
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < 90)
-            return ttValue;
+            return tthit.value;
     }
 
     // Step 5. Tablebases probe
@@ -745,7 +739,7 @@ Value Search::Worker::search(
     else if (ss->ttHit)
     {
         // Never assume anything about values stored in TT
-        unadjustedStaticEval = ttEval;
+        unadjustedStaticEval = tthit.eval;
         if (unadjustedStaticEval == VALUE_NONE)
             unadjustedStaticEval =
               evaluate(networks[numaAccessToken], pos, refreshTable, thisThread->optimism[us]);
@@ -754,9 +748,9 @@ Value Search::Worker::search(
 
         ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
 
-        // ttValue can be used as a better position evaluation (~7 Elo)
-        if (ttValue != VALUE_NONE && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
-            eval = ttValue;
+        // tthit.value can be used as a better position evaluation (~7 Elo)
+        if (tthit.value != VALUE_NONE && (tthit.bound & (tthit.value > eval ? BOUND_LOWER : BOUND_UPPER)))
+            eval = tthit.value;
     }
     else
     {
@@ -807,7 +801,7 @@ Value Search::Worker::search(
         && eval - futility_margin(depth, cutNode && !ss->ttHit, improving, opponentWorsening)
                - (ss - 1)->statScore / 248
              >= beta
-        && eval >= beta && eval < VALUE_TB_WIN_IN_MAX_PLY && (!ttMove || ttCapture))
+        && eval >= beta && eval < VALUE_TB_WIN_IN_MAX_PLY && (!tthit.move || tthit.capture))
         return beta > VALUE_TB_LOSS_IN_MAX_PLY ? beta + (eval - beta) / 3 : eval;
 
     // Step 9. Null move search with verification search (~35 Elo)
@@ -861,18 +855,18 @@ Value Search::Worker::search(
     }
 
     // Step 10. Internal iterative reductions (~9 Elo)
-    // For PV nodes without a ttMove, we decrease depth by 3.
-    if (PvNode && !ttMove)
+    // For PV nodes without a tthit.move, we decrease depth by 3.
+    if (PvNode && !tthit.move)
         depth -= 3;
 
     // Use qsearch if depth <= 0.
     if (depth <= 0)
         return qsearch<PV>(pos, ss, alpha, beta);
 
-    // For cutNodes, if depth is high enough, decrease depth by 2 if there is no ttMove, or
-    // by 1 if there is a ttMove with an upper bound.
-    if (cutNode && depth >= 8 && (!ttMove || ttBound == BOUND_UPPER))
-        depth -= 1 + !ttMove;
+    // For cutNodes, if depth is high enough, decrease depth by 2 if there is no tthit.move, or
+    // by 1 if there is a tthit.move with an upper bound.
+    if (cutNode && depth >= 8 && (!tthit.move || tthit.bound == BOUND_UPPER))
+        depth -= 1 + !tthit.move;
 
     // Step 11. ProbCut (~10 Elo)
     // If we have a good enough capture (or queen promotion) and a reduced search returns a value
@@ -885,11 +879,11 @@ Value Search::Worker::search(
       // there and in further interactions with transposition table cutoff depth is set to depth - 3
       // because probCut search has depth set to depth - 4 but we also do a move before it
       // So effective depth is equal to depth - 3
-      && !(ttDepth >= depth - 3 && ttValue != VALUE_NONE && ttValue < probCutBeta))
+      && !(tthit.depth >= depth - 3 && tthit.value != VALUE_NONE && tthit.value < probCutBeta))
     {
         assert(probCutBeta < VALUE_INFINITE && probCutBeta > beta);
 
-        MovePicker mp(pos, ttMove, probCutBeta - ss->staticEval, &thisThread->captureHistory);
+        MovePicker mp(pos, tthit.move, probCutBeta - ss->staticEval, &thisThread->captureHistory);
 
         while ((move = mp.next_move()) != Move::none())
             if (move != excludedMove && pos.legal(move))
@@ -934,8 +928,8 @@ moves_loop:  // When in check, search starts here
 
     // Step 12. A small Probcut idea, when we are in check (~4 Elo)
     probCutBeta = beta + 361;
-    if (ss->inCheck && !PvNode && ttCapture && (ttBound & BOUND_LOWER) && ttDepth >= depth - 4
-        && ttValue >= probCutBeta && std::abs(ttValue) < VALUE_TB_WIN_IN_MAX_PLY
+    if (ss->inCheck && !PvNode && tthit.capture && (tthit.bound & BOUND_LOWER) && tthit.depth >= depth - 4
+        && tthit.value >= probCutBeta && std::abs(tthit.value) < VALUE_TB_WIN_IN_MAX_PLY
         && std::abs(beta) < VALUE_TB_WIN_IN_MAX_PLY)
         return probCutBeta;
 
@@ -949,7 +943,7 @@ moves_loop:  // When in check, search starts here
     Move countermove =
       prevSq != SQ_NONE ? thisThread->counterMoves[pos.piece_on(prevSq)][prevSq] : Move::none();
 
-    MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory, &thisThread->captureHistory,
+    MovePicker mp(pos, tthit.move, depth, &thisThread->mainHistory, &thisThread->captureHistory,
                   contHist, &thisThread->pawnHistory, countermove, ss->killers);
 
     value            = bestValue;
@@ -1074,22 +1068,22 @@ moves_loop:  // When in check, search starts here
             // Singular extension search (~94 Elo). If all moves but one fail low on a
             // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
             // then that move is singular and should be extended. To verify this we do
-            // a reduced search on the position excluding the ttMove and if the result
-            // is lower than ttValue minus a margin, then we will extend the ttMove.
+            // a reduced search on the position excluding the tthit.move and if the result
+            // is lower than tthit.value minus a margin, then we will extend the tthit.move.
             // Recursive singular search is avoided.
 
             // Note: the depth margin and singularBeta margin are known for having non-linear
             // scaling. Their values are optimized to time controls of 180+1.8 and longer
             // so changing them requires tests at these types of time controls.
-            // Generally, higher singularBeta (i.e closer to ttValue) and lower extension
+            // Generally, higher singularBeta (i.e closer to tthit.value) and lower extension
             // margins scale well.
 
-            if (!rootNode && move == ttMove && !excludedMove
+            if (!rootNode && move == tthit.move && !excludedMove
                 && depth >= 4 - (thisThread->completedDepth > 38) + ss->ttPv
-                && std::abs(ttValue) < VALUE_TB_WIN_IN_MAX_PLY && (ttBound & BOUND_LOWER)
-                && ttDepth >= depth - 3)
+                && std::abs(tthit.value) < VALUE_TB_WIN_IN_MAX_PLY && (tthit.bound & BOUND_LOWER)
+                && tthit.depth >= depth - 3)
             {
-                Value singularBeta  = ttValue - (58 + 64 * (ss->ttPv && !PvNode)) * depth / 64;
+                Value singularBeta  = tthit.value - (58 + 64 * (ss->ttPv && !PvNode)) * depth / 64;
                 Depth singularDepth = newDepth / 2;
 
                 ss->excludedMove = move;
@@ -1100,8 +1094,8 @@ moves_loop:  // When in check, search starts here
 
                 if (value < singularBeta)
                 {
-                    int doubleMargin = 304 * PvNode - 203 * !ttCapture;
-                    int tripleMargin = 117 + 259 * PvNode - 296 * !ttCapture + 97 * ss->ttPv;
+                    int doubleMargin = 304 * PvNode - 203 * !tthit.capture;
+                    int tripleMargin = 117 + 259 * PvNode - 296 * !tthit.capture + 97 * ss->ttPv;
 
                     extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);
@@ -1110,30 +1104,30 @@ moves_loop:  // When in check, search starts here
                 }
 
                 // Multi-cut pruning
-                // Our ttMove is assumed to fail high based on the bound of the TT entry,
-                // and if after excluding the ttMove with a reduced search we fail high over the original beta,
+                // Our tthit.move is assumed to fail high based on the bound of the TT entry,
+                // and if after excluding the tthit.move with a reduced search we fail high over the original beta,
                 // we assume this expected cut-node is not singular (multiple moves fail high),
                 // and we can prune the whole subtree by returning a softbound.
                 else if (singularBeta >= beta)
                     return singularBeta;
 
                 // Negative extensions
-                // If other moves failed high over (ttValue - margin) without the ttMove on a reduced search,
-                // but we cannot do multi-cut because (ttValue - margin) is lower than the original beta,
-                // we do not know if the ttMove is singular or can do a multi-cut,
-                // so we reduce the ttMove in favor of other moves based on some conditions:
+                // If other moves failed high over (tthit.value - margin) without the tthit.move on a reduced search,
+                // but we cannot do multi-cut because (tthit.value - margin) is lower than the original beta,
+                // we do not know if the tthit.move is singular or can do a multi-cut,
+                // so we reduce the tthit.move in favor of other moves based on some conditions:
 
-                // If the ttMove is assumed to fail high over current beta (~7 Elo)
-                else if (ttValue >= beta)
+                // If the tthit.move is assumed to fail high over current beta (~7 Elo)
+                else if (tthit.value >= beta)
                     extension = -3;
 
-                // If we are on a cutNode but the ttMove is not assumed to fail high over current beta (~1 Elo)
+                // If we are on a cutNode but the tthit.move is not assumed to fail high over current beta (~1 Elo)
                 else if (cutNode)
                     extension = -2;
             }
 
             // Extension for capturing the previous moved piece (~0 Elo on STC, ~1 Elo on LTC)
-            else if (PvNode && move == ttMove && move.to_sq() == prevSq
+            else if (PvNode && move == tthit.move && move.to_sq() == prevSq
                      && thisThread->captureHistory[movedPiece][move.to_sq()]
                                                   [type_of(pos.piece_on(move.to_sq()))]
                           > 3988)
@@ -1164,7 +1158,7 @@ moves_loop:  // When in check, search starts here
 
         // Decrease reduction if position is or has been on the PV (~7 Elo)
         if (ss->ttPv)
-            r -= 1 + (ttValue > alpha) + (ttDepth >= depth);
+            r -= 1 + (tthit.value > alpha) + (tthit.depth >= depth);
 
         // Decrease reduction for PvNodes (~0 Elo on STC, ~2 Elo on LTC)
         if (PvNode)
@@ -1174,20 +1168,20 @@ moves_loop:  // When in check, search starts here
 
         // Increase reduction for cut nodes (~4 Elo)
         if (cutNode)
-            r += 2 - (ttDepth >= depth && ss->ttPv)
-               + (!ss->ttPv && move != ttMove && move != ss->killers[0]);
+            r += 2 - (tthit.depth >= depth && ss->ttPv)
+               + (!ss->ttPv && move != tthit.move && move != ss->killers[0]);
 
-        // Increase reduction if ttMove is a capture (~3 Elo)
-        if (ttCapture)
+        // Increase reduction if tthit.move is a capture (~3 Elo)
+        if (tthit.capture)
             r++;
 
         // Increase reduction if next ply has a lot of fail high (~5 Elo)
         if ((ss + 1)->cutoffCnt > 3)
             r++;
 
-        // For first picked move (ttMove) reduce reduction
+        // For first picked move (tthit.move) reduce reduction
         // but never allow it to go below 0 (~3 Elo)
-        else if (move == ttMove)
+        else if (move == tthit.move)
             r = std::max(0, r - 2);
 
         ss->statScore = 2 * thisThread->mainHistory[us][move.from_to()]
@@ -1234,8 +1228,8 @@ moves_loop:  // When in check, search starts here
         // Step 18. Full-depth search when LMR is skipped
         else if (!PvNode || moveCount > 1)
         {
-            // Increase reduction if ttMove is not present (~6 Elo)
-            if (!ttMove)
+            // Increase reduction if tthit.move is not present (~6 Elo)
+            if (!tthit.move)
                 r += 2;
 
             // Note that if expected reduction is high, we reduce search depth by 1 here (~9 Elo)
@@ -1325,7 +1319,7 @@ moves_loop:  // When in check, search starts here
 
                 if (value >= beta)
                 {
-                    ss->cutoffCnt += 1 + !ttMove - (extension >= 2);
+                    ss->cutoffCnt += 1 + !tthit.move - (extension >= 2);
                     assert(value >= beta);  // Fail high
                     break;
                 }
@@ -1490,38 +1484,15 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     // Step 3. Transposition table lookup
     Key      posKey = pos.key();
     TTEntry* tte    = tt.probe(posKey, ss->ttHit);
-
-    Move  ttMove;
-    Value ttValue;
-    Depth ttDepth;
-    Bound ttBound;
-    Value ttEval;
-    bool  ttPv;
-
+    TTData   tthit;
     if (ss->ttHit)
-    {
-        ttMove  = tte->move();
-        ttValue = value_from_tt(tte->value(), ss->ply, pos.rule50_count());
-        ttDepth = tte->depth();
-        ttBound = tte->bound();
-        ttEval  = tte->eval();
-        ttPv    = tte->is_pv();
-    }
-    else
-    {
-        ttMove  = Move::none();
-        ttValue = VALUE_NONE;
-        ttDepth = DEPTH_UNSEARCHED;
-        ttBound = BOUND_NONE;
-        ttEval  = VALUE_NONE;
-        ttPv    = false;
-    }
+        tthit.copy_entry(tte, pos, ss->ply, false);
 
     // At non-PV nodes we check for an early TT cutoff
-    if (!PvNode && ttDepth >= qDepth
-        && ttValue != VALUE_NONE  // Only in case of TT access race or if !ttHit
-        && (ttBound & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
-        return ttValue;
+    if (!PvNode && tthit.depth >= qDepth
+        && tthit.value != VALUE_NONE  // Only in case of TT access race or if !ttHit
+        && (tthit.bound & (tthit.value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+        return tthit.value;
 
     // Step 4. Static evaluation of the position
     Value unadjustedStaticEval = VALUE_NONE;
@@ -1532,17 +1503,17 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
         if (ss->ttHit)
         {
             // Never assume anything about values stored in TT
-            unadjustedStaticEval = ttEval;
+            unadjustedStaticEval = tthit.eval;
             if (unadjustedStaticEval == VALUE_NONE)
                 unadjustedStaticEval =
                   evaluate(networks[numaAccessToken], pos, refreshTable, thisThread->optimism[us]);
             ss->staticEval = bestValue =
               to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
 
-            // ttValue can be used as a better position evaluation (~13 Elo)
-            if (std::abs(ttValue) < VALUE_TB_WIN_IN_MAX_PLY
-                && (ttBound & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER)))
-                bestValue = ttValue;
+            // tthit.value can be used as a better position evaluation (~13 Elo)
+            if (std::abs(tthit.value) < VALUE_TB_WIN_IN_MAX_PLY
+                && (tthit.bound & (tthit.value > bestValue ? BOUND_LOWER : BOUND_UPPER)))
+                bestValue = tthit.value;
         }
         else
         {
@@ -1582,7 +1553,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     // (Presently, having the checks stage is worth only 1 Elo, and may be removable in the near future,
     // which would result in only a single stage of QS movegen.)
     Square     prevSq = ((ss - 1)->currentMove).is_ok() ? ((ss - 1)->currentMove).to_sq() : SQ_NONE;
-    MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory, &thisThread->captureHistory,
+    MovePicker mp(pos, tthit.move, depth, &thisThread->mainHistory, &thisThread->captureHistory,
                   contHist, &thisThread->pawnHistory);
 
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
@@ -1701,7 +1672,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     // Save gathered info in transposition table
     // Static evaluation is saved as it was before adjustment by correction history
-    tte->save(posKey, value_to_tt(bestValue, ss->ply), ttPv,
+    tte->save(posKey, value_to_tt(bestValue, ss->ply), tthit.pv,
               bestValue >= beta ? BOUND_LOWER : BOUND_UPPER, qDepth, bestMove, unadjustedStaticEval,
               tt.generation());
 
