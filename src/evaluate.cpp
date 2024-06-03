@@ -45,9 +45,11 @@ int Eval::simple_eval(const Position& pos, Color c) {
          + (pos.non_pawn_material(c) - pos.non_pawn_material(~c));
 }
 
+int D1=650, D2=34846, R1=211, S1=1210, S3=295, M1=237, M2=199, M3=511, M4=437, M5=1371, V1=26000, V2=2750;
+
 bool Eval::use_smallnet(const Position& pos) {
     int simpleEval = simple_eval(pos, pos.side_to_move());
-    return std::abs(simpleEval) > 992;
+    return std::abs(simpleEval) > S1;
 }
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
@@ -66,30 +68,29 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     auto [psqt, positional] = smallNet ? networks.small.evaluate(pos, &caches.small)
                                        : networks.big.evaluate(pos, &caches.big);
 
-    constexpr int delta          = 3;
-    Value         nnue           = ((128 - delta) * psqt + (128 + delta) * positional) / 128;
+    Value         nnue           = psqt + positional;
     int           nnueComplexity = std::abs(psqt - positional);
 
     // Re-evaluate the position when higher eval accuracy is worth the time spent
-    if (smallNet && (nnue * simpleEval < 0 || std::abs(nnue) < 250))
+    if (smallNet && (nnue * simpleEval < 0 || std::abs(nnue) < S3))
     {
         std::tie(psqt, positional) = networks.big.evaluate(pos, &caches.big);
-        nnue                       = ((128 - delta) * psqt + (128 + delta) * positional) / 128;
+        nnue                       = psqt + positional;
         nnueComplexity             = std::abs(psqt - positional);
         smallNet                   = false;
     }
 
     // Blend optimism and eval with nnue complexity
-    optimism += optimism * nnueComplexity / 470;
-    nnue -= nnue * nnueComplexity / 20000;
+    optimism += optimism * nnueComplexity / D1;
+    nnue -= nnue * nnueComplexity / D2;
 
-    int material = 300 * pos.count<PAWN>() + 350 * pos.count<KNIGHT>() + 400 * pos.count<BISHOP>()
-                 + 640 * pos.count<ROOK>() + 1200 * pos.count<QUEEN>();
+    int material = M1 * pos.count<PAWN>() + M2 * pos.count<KNIGHT>() + M3 * pos.count<BISHOP>()
+                 + M4 * pos.count<ROOK>() + M5 * pos.count<QUEEN>();
 
-    v = (nnue * (34300 + material) + optimism * (4400 + material)) / 36672;
+    v = (nnue * (V1 + material) + optimism * (V2 + material)) / 36672;
 
     // Damp down the evaluation linearly when shuffling
-    v -= v * pos.rule50_count() / 212;
+    v -= v * pos.rule50_count() / R1;
 
     // Guarantee evaluation does not hit the tablebase range
     v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
