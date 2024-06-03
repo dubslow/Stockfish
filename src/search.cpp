@@ -517,8 +517,7 @@ void Search::Worker::clear() {
 
 int C=0, B1=334, B2=343, B3=343, B4=869;
 int P1=5, P4=9;
-auto BRange = [](int b){return std::pair<int, int>(-b*6, b*6);};
-TUNE(SetRange(BRange), C, B1, B2, B3, B4);
+TUNE(SetRange(-2000, 2000), C, B1, B2, B3, B4);
 TUNE(SetRange(1, 20), P1);
 TUNE(SetRange(4, 16), P4);
 
