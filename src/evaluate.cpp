@@ -45,9 +45,11 @@ int Eval::simple_eval(const Position& pos, Color c) {
          + (pos.non_pawn_material(c) - pos.non_pawn_material(~c));
 }
 
+int D1=462, D2=20199, D3=72976, S1=940, S3=233, M1=558, V1=69825, V2=8458;
+
 bool Eval::use_smallnet(const Position& pos) {
     int simpleEval = simple_eval(pos, pos.side_to_move());
-    return std::abs(simpleEval) > 992;
+    return std::abs(simpleEval) > S1;
 }
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
@@ -66,25 +68,24 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     auto [psqt, positional] = smallNet ? networks.small.evaluate(pos, &caches.small)
                                        : networks.big.evaluate(pos, &caches.big);
 
-    constexpr int delta          = 3;
-    Value         nnue           = ((128 - delta) * psqt + (128 + delta) * positional) / 128;
+    Value         nnue           = psqt + positional;
     int           nnueComplexity = std::abs(psqt - positional);
 
     // Re-evaluate the position when higher eval accuracy is worth the time spent
-    if (smallNet && (nnue * simpleEval < 0 || std::abs(nnue) < 250))
+    if (smallNet && (nnue * simpleEval < 0 || std::abs(nnue) < S3))
     {
         std::tie(psqt, positional) = networks.big.evaluate(pos, &caches.big);
-        nnue                       = ((128 - delta) * psqt + (128 + delta) * positional) / 128;
+        nnue                       = psqt + positional;
         nnueComplexity             = std::abs(psqt - positional);
         smallNet                   = false;
     }
 
     // Blend optimism and eval with nnue complexity
-    optimism += optimism * nnueComplexity / 470;
-    nnue -= nnue * nnueComplexity / 20000;
+    optimism += optimism * nnueComplexity / D1;
+    nnue -= nnue * nnueComplexity / D2;
 
-    int material = 600 * pos.count<PAWN>() + pos.non_pawn_material();
-    v            = (nnue * (68600 + material) + optimism * (8800 + material)) / 73344;
+    int material = M1 * pos.count<PAWN>() + pos.non_pawn_material();
+    v            = (nnue * (V1 + material) + optimism * (V2 + material)) / D3;
 
     // Damp down the evaluation linearly when shuffling
     v -= v * pos.rule50_count() / 212;
