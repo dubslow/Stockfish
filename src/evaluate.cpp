@@ -79,8 +79,10 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
         smallNet                   = false;
     }
 
+    bool opposing = (positional < 0) == (psqt < 0); // twos complement (x^y) >= 0
+
     // Blend optimism and eval with nnue complexity
-    optimism += optimism * nnueComplexity / 470;
+    optimism += (opposing? -1 : 1) * optimism * nnueComplexity / 470;
     nnue -= nnue * nnueComplexity / 20000;
 
     int material = 600 * pos.count<PAWN>() + pos.non_pawn_material();
