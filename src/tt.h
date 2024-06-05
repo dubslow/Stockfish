@@ -37,25 +37,28 @@ namespace Stockfish {
 // bound type  2 bit
 // move       16 bit
 // value      16 bit
-// eval value 16 bit
+// evaluation 16 bit
 //
 // These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
 // Equally, the store order in save() matches this order.
+
+// Separately, we have this TTData structure which exports the same data as external types, rather than
+// interal, tightly packed bitfields.
 struct TTData {
     Move  move;
-    Value value;
-    Value eval;
+    Value value, eval;
     Depth depth;
-    bool  is_pv;
     Bound bound;
+    bool  is_pv;
 };
 
 struct TTEntry {
 
-    TTData expose() {
-        return TTData{Move(move16),          Value(value16),
-                      Value(eval16),         Depth(depth8 + DEPTH_ENTRY_OFFSET),
-                      bool(genBound8 & 0x4), Bound(genBound8 & 0x3)};
+    // Convert internal bitfields to external types
+    TTData read() const {
+        return TTData{Move(move16),           Value(value16),
+                      Value(eval16),          Depth(depth8 + DEPTH_ENTRY_OFFSET),
+                      Bound(genBound8 & 0x3), bool(genBound8 & 0x4)};
     }
 
     void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);

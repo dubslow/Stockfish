@@ -39,7 +39,7 @@ case $1 in
     threads="2"
 
 cat << EOF > tsan.supp
-race:Stockfish::TTEntry::expose
+race:Stockfish::TTEntry::read
 race:Stockfish::TTEntry::save
 
 race:Stockfish::TranspositionTable::probe
