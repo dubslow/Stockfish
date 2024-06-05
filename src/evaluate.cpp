@@ -79,6 +79,9 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
         smallNet                   = false;
     }
 
+    if ((positional < 0) != (psqt < 0)) // twos complement (x^y) < 0
+        nnueComplexity += nnueComplexity / 8;
+
     // Blend optimism and eval with nnue complexity
     optimism += optimism * nnueComplexity / 470;
     nnue -= nnue * nnueComplexity / 20000;
