@@ -80,7 +80,15 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     }
 
     // Blend optimism and eval with nnue complexity
-    optimism += (positional > psqt ? 1 : -1) * optimism * nnueComplexity / 470;
+    int term = optimism * nnueComplexity;
+    dbg_mean_of(term, 0);
+    dbg_mean_of(term/470, 1);
+    dbg_mean_of(positional, 2);
+    term *= positional;
+    dbg_mean_of(term, 3);
+    term /= 20000000;
+    dbg_mean_of(term, 4);
+    optimism += optimism * nnueComplexity / 470;
     nnue -= nnue * nnueComplexity / 20000;
 
     int material = 300 * pos.count<PAWN>() + 350 * pos.count<KNIGHT>() + 400 * pos.count<BISHOP>()
