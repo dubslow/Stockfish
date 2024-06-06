@@ -28,22 +28,38 @@
 
 namespace Stockfish {
 
-// TTEntry struct is the 10 bytes transposition table entry, defined as below:
-//
-// key        16 bit
-// depth       8 bit
-// generation  5 bit
-// pv node     1 bit
-// bound type  2 bit
-// move       16 bit
-// value      16 bit
-// evaluation 16 bit
-//
-// These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
-// Equally, the store order in save() matches this order.
+class ThreadPool;
+struct TTEntry;
+struct Cluster;
 
-// Separately, we have this TTData structure which exports the same data as external types, rather than
-// interal, tightly packed bitfields.
+// The Stockfish TranspositionTable is a classic hash table, and some care is taken under the hood to support large hash
+// sizes and efficient storage packing. There is only one global hash table for the engine and all its threads.
+// For chess in particular, we even allow racy updates between threads to and from the TT, as taking the time to
+// synchronize access would cost thinking time and thus elo. As a hash table, collisions are possible and may cause
+// chess playing issues (bizarre blunders, faulty mate reports, etc). However the risk of such decreases with size.
+//
+// The public interface of the TT is minimal.
+//
+// The maintenance methods are `resize`, `clear` and `hashfull`. The first two do what they say, while the latter
+// reports roughly how many times we've stored new search results during the current search.
+//
+// The functional methods are `new_search`, `generation`, `probe`, and `first_entry`. Any time we start a fresh search,
+// alert the TT with `new_search`, and any time we store data, the user must pass in the current `generation()`.
+// `first_entry` is only needed to prefetch entries from memory, and should otherwise be considered an implementation
+// detail.
+// `probe` is the primary method: given a board position, we lookup its entry in the table, and return a tuple of:
+//   1) whether or not we found existing data in the entry
+//   2) a copy of the data (if any) already stored in the entry
+//   3) the means by which to write new data into this entry (if desirable).
+//
+//  The reason to split 2) and 3) into separate objects is to maintain clear separation between local, threadsafe
+//  datastructures and global, racy datastructures. 2) is the former, 3) is the latter, and ought not be confused.
+//
+// These are the `probe` return types:
+//
+// A copy of the data already in the entry. It is read from the entry together, just once. In principle, this read
+// should be considered racy, but in practice it's plenty fast enough to avoid problems. After the copy is made, the
+// result can be freely used by the using thread without any further worry of races.
 struct TTData {
     Move  move;
     Value value, eval;
@@ -51,84 +67,38 @@ struct TTData {
     Bound bound;
     bool  is_pv;
 };
-
-struct TTEntry {
-
-    // Convert internal bitfields to external types
-    TTData read() const {
-        return TTData{Move(move16),           Value(value16),
-                      Value(eval16),          Depth(depth8 + DEPTH_ENTRY_OFFSET),
-                      Bound(genBound8 & 0x3), bool(genBound8 & 0x4)};
-    }
-
-    void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
-    // The returned age is a multiple of TranspositionTable::GENERATION_DELTA
-    uint8_t relative_age(const uint8_t generation8) const;
-
+//
+// This is to be considered the racy object, used to make racy writes to the global TT.
+struct TTWriter {
+   public:
+    void write(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
    private:
     friend class TranspositionTable;
-
-    uint16_t key16;
-    uint8_t  depth8;
-    uint8_t  genBound8;
-    Move     move16;
-    int16_t  value16;
-    int16_t  eval16;
+    TTEntry* entry; // This is no concern of the user
+    TTWriter(TTEntry* tte);
 };
 
-class ThreadPool;
 
-// A TranspositionTable is an array of Cluster, of size clusterCount. Each
-// cluster consists of ClusterSize number of TTEntry. Each non-empty TTEntry
-// contains information on exactly one position. The size of a Cluster should
-// divide the size of a cache line for best performance, as the cacheline is
-// prefetched when possible.
 class TranspositionTable {
-
-    static constexpr int ClusterSize = 3;
-
-    struct Cluster {
-        TTEntry entry[ClusterSize];
-        char    padding[2];  // Pad to 32 bytes
-    };
-
-    static_assert(sizeof(Cluster) == 32, "Unexpected Cluster size");
-
-    // Constants used to refresh the hash table periodically
-
-    // We have 8 bits available where the lowest 3 bits are
-    // reserved for other things.
-    static constexpr unsigned GENERATION_BITS = 3;
-    // increment for generation field
-    static constexpr int GENERATION_DELTA = (1 << GENERATION_BITS);
-    // cycle length
-    static constexpr int GENERATION_CYCLE = 255 + GENERATION_DELTA;
-    // mask to pull out generation number
-    static constexpr int GENERATION_MASK = (0xFF << GENERATION_BITS) & 0xFF;
 
    public:
     ~TranspositionTable() { aligned_large_pages_free(table); }
-    void new_search() {
-        // increment by delta to keep lower bits as is
-        generation8 += GENERATION_DELTA;
-    }
 
-    TTEntry* probe(const Key key, bool& found) const;
-    int      hashfull() const;
-    void     resize(size_t mbSize, ThreadPool& threads);
-    void     clear(ThreadPool& threads);
+    void resize(size_t mbSize, ThreadPool& threads); // Threads must be ready before resizing the table.
+    void clear(ThreadPool& threads); // Delete all present data, prepare for a new game.
+    int  hashfull() const; // Roughly the count of writes-to-TT per TT-size in the current search, permille per UCI spec.
 
-    TTEntry* first_entry(const Key key) const {
-        return &table[mul_hi64(key, clusterCount)].entry[0];
-    }
-
-    uint8_t generation() const { return generation8; }
+    void new_search(); // The user must call this for each new search in the current game.
+    uint8_t generation() const; // This return value is what gets passed to the TTWriter.
+    std::tuple<bool, TTData, TTWriter> probe(const Key key) const;
+    TTEntry* first_entry(const Key key) const; // Only to be used for prefetching from memory
 
    private:
     friend struct TTEntry;
 
     size_t   clusterCount;
     Cluster* table       = nullptr;
+
     uint8_t  generation8 = 0;  // Size must be not bigger than TTEntry::genBound8
 };
 

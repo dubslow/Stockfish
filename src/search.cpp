@@ -546,7 +546,6 @@ Value Search::Worker::search(
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
-    TTEntry* tte;
     Key      posKey;
     Move     move, excludedMove, bestMove;
     Depth    extension, newDepth;
@@ -606,9 +605,10 @@ Value Search::Worker::search(
     // Step 4. Transposition table lookup.
     excludedMove = ss->excludedMove;
     posKey       = pos.key();
-    tte          = tt.probe(posKey, ss->ttHit);
-    auto [ttMove, ttValue, ttEval, ttDepth, ttBound, ttIsPv] = tte->read();
+    auto [ttHit, ttData, ttWriter] = tt.probe(posKey);
+    auto [ttMove, ttValue, ttEval, ttDepth, ttBound, ttIsPv] = ttData; // completely optional to unstructure or not
     // Need further processing of the saved data
+    ss->ttHit = ttHit;
     ttMove         = rootNode  ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
                    : ss->ttHit ? ttMove
                                : Move::none();
@@ -679,7 +679,7 @@ Value Search::Worker::search(
 
                 if (b == BOUND_EXACT || (b == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
-                    tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, b,
+                    ttWriter.write(posKey, value_to_tt(value, ss->ply), ss->ttPv, b,
                               std::min(MAX_PLY - 1, depth + 6), Move::none(), VALUE_NONE,
                               tt.generation());
 
@@ -736,7 +736,7 @@ Value Search::Worker::search(
         ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
 
         // Static evaluation is saved as it was before adjustment by correction history
-        tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_UNSEARCHED, Move::none(),
+        ttWriter.write(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_UNSEARCHED, Move::none(),
                   unadjustedStaticEval, tt.generation());
     }
 
@@ -891,7 +891,7 @@ Value Search::Worker::search(
                 if (value >= probCutBeta)
                 {
                     // Save ProbCut data into transposition table
-                    tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, BOUND_LOWER, depth - 3,
+                    ttWriter.write(posKey, value_to_tt(value, ss->ply), ss->ttPv, BOUND_LOWER, depth - 3,
                               move, unadjustedStaticEval, tt.generation());
                     return std::abs(value) < VALUE_TB_WIN_IN_MAX_PLY ? value - (probCutBeta - beta)
                                                                      : value;
@@ -1372,7 +1372,7 @@ moves_loop:  // When in check, search starts here
     // Write gathered information in transposition table
     // Static evaluation is saved as it was before correction history
     if (!excludedMove && !(rootNode && thisThread->pvIdx))
-        tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
+        ttWriter.write(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
                   bestValue >= beta    ? BOUND_LOWER
                   : PvNode && bestMove ? BOUND_EXACT
                                        : BOUND_UPPER,
@@ -1423,7 +1423,6 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
-    TTEntry* tte;
     Key      posKey;
     Move     move, bestMove;
     Value    bestValue, value, futilityBase;
@@ -1462,16 +1461,17 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     // Step 3. Transposition table lookup
     posKey  = pos.key();
-    tte     = tt.probe(posKey, ss->ttHit);
-    auto [ttMove, ttValue, ttEval, ttDepth, ttBound, ttIsPv] = tte->read();
+    auto [ttHit, ttData, ttWriter] = tt.probe(posKey);
+    auto [ttMove, ttValue, ttEval, ttDepth, ttBound, ttIsPv] = ttData; // completely optional to unstructure or not
     // Need further processing of the saved data
+    ss->ttHit = ttHit;
     ttMove  = ss->ttHit ? ttMove : Move::none();
     ttValue = ss->ttHit ? value_from_tt(ttValue, ss->ply, pos.rule50_count()) : VALUE_NONE;
     pvHit   = ss->ttHit && ttIsPv;
 
     // At non-PV nodes we check for an early TT cutoff
     if (!PvNode && ttDepth >= qsDepth
-        && ttValue != VALUE_NONE  
+        && ttValue != VALUE_NONE
         && (ttBound & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
         return ttValue;
 
@@ -1513,7 +1513,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
             if (std::abs(bestValue) < VALUE_TB_WIN_IN_MAX_PLY && !PvNode)
                 bestValue = (3 * bestValue + beta) / 4;
             if (!ss->ttHit)
-                tte->save(posKey, value_to_tt(bestValue, ss->ply), false, BOUND_LOWER,
+                ttWriter.write(posKey, value_to_tt(bestValue, ss->ply), false, BOUND_LOWER,
                           DEPTH_UNSEARCHED, Move::none(), unadjustedStaticEval, tt.generation());
 
             return bestValue;
@@ -1653,7 +1653,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     // Save gathered info in transposition table
     // Static evaluation is saved as it was before adjustment by correction history
-    tte->save(posKey, value_to_tt(bestValue, ss->ply), pvHit,
+    ttWriter.write(posKey, value_to_tt(bestValue, ss->ply), pvHit,
               bestValue >= beta ? BOUND_LOWER : BOUND_UPPER, qsDepth, bestMove,
               unadjustedStaticEval, tt.generation());
 
@@ -1996,19 +1996,17 @@ bool RootMove::extract_ponder_from_tt(const TranspositionTable& tt, Position& po
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
-    bool ttHit;
-
     assert(pv.size() == 1);
     if (pv[0] == Move::none())
         return false;
 
     pos.do_move(pv[0], st);
-    Move ttMove = tt.probe(pos.key(), ttHit)->read().move;
 
+    auto [ttHit, ttData, ttWriter] = tt.probe(pos.key());
     if (ttHit)
     {
-        if (MoveList<LEGAL>(pos).contains(ttMove))
-            pv.push_back(ttMove);
+        if (MoveList<LEGAL>(pos).contains(ttData.move))
+            pv.push_back(ttData.move);
     }
 
     pos.undo_move(pv[0]);
