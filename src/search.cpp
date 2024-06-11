@@ -462,7 +462,7 @@ void Search::Worker::iterative_deepening() {
 
             auto elapsedTime = elapsed();
 
-            if (completedDepth >= 10 && nodesEffort >= 97 && elapsedTime > totalTime * 0.739
+            if (nodesEffort >= 97 && elapsedTime > totalTime * 0.739
                 && !mainThread->ponder)
                 threads.stop = true;
 
@@ -1047,7 +1047,7 @@ moves_loop:  // When in check, search starts here
             // margins scale well.
 
             if (!rootNode && move == ttMove && !excludedMove
-                && depth >= 4 - (thisThread->completedDepth > 35) + ss->ttPv
+                && depth >= 3 + ss->ttPv
                 && std::abs(ttValue) < VALUE_TB_WIN_IN_MAX_PLY && (tte->bound() & BOUND_LOWER)
                 && tte->depth() >= depth - 3)
             {
