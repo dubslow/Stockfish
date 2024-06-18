@@ -56,8 +56,8 @@ struct TTEntry {
     }
 
     bool is_occupied() const;
-    void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
-    // The returned age is a multiple of TranspositionTable::GENERATION_DELTA
+    void maybe_save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation, bool force);
+    // The returned age is a multiple of GENERATION_DELTA.
     uint8_t relative_age(const uint8_t generation8) const;
 
    private:
@@ -88,18 +88,17 @@ static constexpr int GENERATION_MASK = (0xFF << GENERATION_BITS) & 0xFF;
 // we sacrifice the ability to store depths greater than 1<<8 less the offset, as asserted in `save`.)
 bool TTEntry::is_occupied() const { return bool(depth8); }
 
-// Populates the TTEntry with a new node's data, possibly
+// Maybe populates the TTEntry with a new node's data, possibly
 // overwriting an old position. The update is not atomic and can be racy.
-void TTEntry::save(
-  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8) {
+void TTEntry::maybe_save(
+  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8, bool force) {
 
     // Preserve the old ttmove if we don't have a new one
     if (m || uint16_t(k) != key16)
         move16 = m;
 
-    // Overwrite less valuable entries (cheapest checks first)
-    if (b == BOUND_EXACT || uint16_t(k) != key16 || d - DEPTH_ENTRY_OFFSET + 2 * pv > depth8 - 4
-        || relative_age(generation8))
+    // Overwrite less valuable entries
+    if (uint16_t(k) != key16 || relative_age(generation8) || force)
     {
         assert(d > DEPTH_ENTRY_OFFSET);
         assert(d < 256 + DEPTH_ENTRY_OFFSET);
@@ -127,9 +126,9 @@ uint8_t TTEntry::relative_age(const uint8_t generation8) const {
 TTWriter::TTWriter(TTEntry* tte) :
     entry(tte) {}
 
-void TTWriter::write(
-  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8) {
-    entry->save(k, v, pv, b, d, m, ev, generation8);
+void TTWriter::maybe_write(
+  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8, bool force) {
+    entry->maybe_save(k, v, pv, b, d, m, ev, generation8, force);
 }
 
 

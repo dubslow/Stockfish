@@ -115,13 +115,15 @@ Value value_to_tt(Value v, int ply);
 Value value_from_tt(Value v, int ply, int r50c);
 class TTUpdater {
    public:
-    TTUpdater(TTWriter&& ttWriter, TranspositionTable* tt_, Key poskey, int ply_) :
-              writer(ttWriter), tt(tt_), key(poskey), ply(ply_) {}
+    TTUpdater(TTWriter&& ttWriter, TranspositionTable* tt_, Key poskey, int ply_, const TTData& oldData_) :
+              writer(ttWriter), tt(tt_), key(poskey), ply(ply_), oldData(oldData_) {}
 
-    void update(Value newValue, bool newIsPv, Bound newBound, Depth newDepth, Move newMove, Value newEval)
-    {
-        writer.write(key, value_to_tt(newValue, ply), newIsPv, newBound, newDepth, newMove, newEval,
-                     tt->generation());
+    void maybe_update(Value newValue, bool newIsPv, Bound newBound, Depth newDepth, Move newMove, Value newEval)
+    {   // There is much room to make this method considerably smarter based on various search data
+        bool force = (newBound == BOUND_EXACT || newDepth + 2 * newIsPv > oldData.depth - 4);
+
+        writer.maybe_write(key, value_to_tt(newValue, ply), newIsPv, newBound, newDepth, newMove, newEval,
+                     tt->generation(), force);
     }
 
    private:
@@ -129,6 +131,7 @@ class TTUpdater {
     TranspositionTable* tt;
     Key key;
     int ply;
+    const TTData& oldData;
 };
 
 void  update_pv(Move* pv, Move move, const Move* childPv);
@@ -631,7 +634,7 @@ Value Search::Worker::search(
     excludedMove                   = ss->excludedMove;
     posKey                         = pos.key();
     auto [ttHit, ttData, ttWriter] = tt.probe(posKey);
-    TTUpdater ttUpdater(std::move(ttWriter), &tt, pos.key(), ss->ply);
+    TTUpdater ttUpdater(std::move(ttWriter), &tt, pos.key(), ss->ply, ttData);
     // Need further processing of the saved data
     ss->ttHit    = ttHit;
     ttData.move  = rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
@@ -704,7 +707,7 @@ Value Search::Worker::search(
 
                 if (b == BOUND_EXACT || (b == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
-                    ttUpdater.update(value, ss->ttPv, b, std::min(MAX_PLY - 1, depth + 6),
+                    ttUpdater.maybe_update(value, ss->ttPv, b, std::min(MAX_PLY - 1, depth + 6),
                                      Move::none(), VALUE_NONE);
                     return value;
                 }
@@ -760,7 +763,7 @@ Value Search::Worker::search(
         ss->staticEval = eval = to_corrected_static_eval(unadjustedStaticEval, *thisThread, pos);
 
         // Static evaluation is saved as it was before adjustment by correction history
-        ttUpdater.update(VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_UNSEARCHED, Move::none(),
+        ttUpdater.maybe_update(VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_UNSEARCHED, Move::none(),
                          unadjustedStaticEval);
     }
 
@@ -906,7 +909,7 @@ Value Search::Worker::search(
                 if (value >= probCutBeta)
                 {
                     // Save ProbCut data into transposition table
-                    ttUpdater.update(value, ss->ttPv, BOUND_LOWER, depth - 3, move,
+                    ttUpdater.maybe_update(value, ss->ttPv, BOUND_LOWER, depth - 3, move,
                                      unadjustedStaticEval);
                     return std::abs(value) < VALUE_TB_WIN_IN_MAX_PLY ? value - (probCutBeta - beta)
                                                                      : value;
@@ -1389,7 +1392,7 @@ moves_loop:  // When in check, search starts here
     // Write gathered information in transposition table
     // Static evaluation is saved as it was before correction history
     if (!excludedMove && !(rootNode && thisThread->pvIdx))
-        ttUpdater.update(bestValue, ss->ttPv,
+        ttUpdater.maybe_update(bestValue, ss->ttPv,
                          bestValue >= beta    ? BOUND_LOWER
                          : PvNode && bestMove ? BOUND_EXACT
                                               : BOUND_UPPER,
@@ -1479,7 +1482,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
     // Step 3. Transposition table lookup
     posKey                         = pos.key();
     auto [ttHit, ttData, ttWriter] = tt.probe(posKey);
-    TTUpdater ttUpdater(std::move(ttWriter), &tt, pos.key(), ss->ply);
+    TTUpdater ttUpdater(std::move(ttWriter), &tt, pos.key(), ss->ply, ttData);
     // Need further processing of the saved data
     ss->ttHit    = ttHit;
     ttData.move  = ttHit ? ttData.move : Move::none();
@@ -1530,7 +1533,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
             if (std::abs(bestValue) < VALUE_TB_WIN_IN_MAX_PLY && !PvNode)
                 bestValue = (3 * bestValue + beta) / 4;
             if (!ss->ttHit)
-                ttUpdater.update(bestValue, false, BOUND_LOWER, DEPTH_UNSEARCHED,
+                ttUpdater.maybe_update(bestValue, false, BOUND_LOWER, DEPTH_UNSEARCHED,
                                  Move::none(), unadjustedStaticEval);
 
             return bestValue;
@@ -1670,7 +1673,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta,
 
     // Save gathered info in transposition table
     // Static evaluation is saved as it was before adjustment by correction history
-    ttUpdater.update(bestValue, pvHit, bestValue >= beta ? BOUND_LOWER : BOUND_UPPER,
+    ttUpdater.maybe_update(bestValue, pvHit, bestValue >= beta ? BOUND_LOWER : BOUND_UPPER,
                      qsTtDepth, bestMove, unadjustedStaticEval);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
