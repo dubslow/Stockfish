@@ -891,10 +891,11 @@ Value Search::Worker::search(
                 if (value >= probCutBeta)
                 {
                     // Save ProbCut data into transposition table
-                    ttWriter.write(posKey, value_to_tt(value, ss->ply), ss->ttPv, BOUND_LOWER,
-                                   depth - 3, move, unadjustedStaticEval, tt.generation());
-                    return std::abs(value) < VALUE_TB_WIN_IN_MAX_PLY ? value - (probCutBeta - beta)
+                    Value adjusted = std::abs(value) < VALUE_TB_WIN_IN_MAX_PLY ? value - (probCutBeta - beta)
                                                                      : value;
+                    ttWriter.write(posKey, value_to_tt(adjusted, ss->ply), ss->ttPv, BOUND_LOWER,
+                                   depth - 3, move, unadjustedStaticEval, tt.generation());
+                    return adjusted;
                 }
             }
 
