@@ -909,7 +909,7 @@ moves_loop:  // When in check, search starts here
         && ttData.depth >= depth - 4 && ttData.value >= probCutBeta
         && std::abs(ttData.value) < VALUE_TB_WIN_IN_MAX_PLY
         && std::abs(beta) < VALUE_TB_WIN_IN_MAX_PLY)
-        return probCutBeta;
+        return (3 * probCutBeta + beta) / 4;
 
     const PieceToHistory* contHist[] = {(ss - 1)->continuationHistory,
                                         (ss - 2)->continuationHistory,
