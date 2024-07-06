@@ -88,9 +88,6 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     // Evaluation grain (to get more alpha-beta cuts) with randomization (for robustness)
     v = (v / 16) * 16 - 1 + (pos.key() & 0x2);
 
-    // Damp down the evaluation linearly when shuffling
-    v -= v * pos.rule50_count() / 212;
-
     // Guarantee evaluation does not hit the tablebase range
     v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 
