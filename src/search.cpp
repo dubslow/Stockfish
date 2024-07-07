@@ -565,7 +565,7 @@ Value Search::Worker::search(
     bool  givesCheck, improving, priorCapture, opponentWorsening;
     bool  capture, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int   moveCount, captureCount, quietCount;
+    int   moveCount, captureCount, quietCount, histAdjust;
 
     // Step 1. Initialize node
     Worker* thisThread = this;
@@ -776,7 +776,8 @@ Value Search::Worker::search(
     // Step 7. Razoring (~1 Elo)
     // If eval is really low, check with qsearch if we can exceed alpha. If the
     // search suggests we cannot exceed alpha, return a speculative fail low.
-    if (eval < alpha - 494 - 290 * depth * depth)
+    histAdjust = std::clamp((ss - 1)->statScore / 64, -200, 200);
+    if (eval < alpha - 494 - 290 * depth * depth + histAdjust)
     {
         value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
         if (value < alpha && std::abs(value) < VALUE_TB_WIN_IN_MAX_PLY)
