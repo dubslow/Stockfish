@@ -495,6 +495,7 @@ void Search::Worker::clear() {
     refreshTable.clear(networks[numaAccessToken]);
 }
 
+constexpr int DIV=140, MIN=-250, MAX=230, CONST=512, QUAD=295;
 
 // Main search function for both PV and non-PV nodes
 template<NodeType nodeType>
@@ -535,6 +536,7 @@ Value Search::Worker::search(
     bool  givesCheck, improving, priorCapture, opponentWorsening;
     bool  capture, ttCapture;
     Piece movedPiece;
+    int   histAdjust;
 
     ValueList<Move, 32> capturesSearched;
     ValueList<Move, 32> quietsSearched;
@@ -744,7 +746,8 @@ Value Search::Worker::search(
     // Step 7. Razoring (~1 Elo)
     // If eval is really low, check with qsearch if we can exceed alpha. If the
     // search suggests we cannot exceed alpha, return a speculative fail low.
-    if (eval < alpha - 494 - 290 * depth * depth)
+    histAdjust = std::clamp((ss - 1)->statScore / DIV, MIN, MAX);
+    if (eval < alpha - CONST - QUAD * depth * depth + histAdjust)
     {
         value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
         if (value < alpha && std::abs(value) < VALUE_TB_WIN_IN_MAX_PLY)
