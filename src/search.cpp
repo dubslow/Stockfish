@@ -890,7 +890,16 @@ Value Search::Worker::search(
     // Step 7. Razoring
     // If eval is really low, skip search entirely and return the qsearch value.
     // For PvNodes, we must have a guard against mates being returned.
-    if (!PvNode && eval < alpha - 502 - 306 * depth * depth)
+    if (PvNode)
+    {
+        if (!ss->followPV && !is_decisive(alpha) && eval < alpha - 502 - 306 * depth * depth)
+        {
+            Value razv = qsearch<NonPV>(pos, ss, alpha-1, alpha); // lets see how long until viz notices these bounds
+            if (razv < alpha)
+                return std::max(razv, VALUE_TB_LOSS_IN_MAX_PLY+1);
+        }
+    }
+    else if (eval < alpha - 502 - 306 * depth * depth)
         return qsearch<NonPV>(pos, ss, alpha, beta);
 
     // Step 8. Futility pruning: child node
