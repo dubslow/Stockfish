@@ -46,7 +46,13 @@ int Eval::simple_eval(const Position& pos) {
          - pos.non_pawn_material(~c);
 }
 
-bool Eval::use_smallnet(const Position& pos) { return std::abs(simple_eval(pos)) > 962; }
+int SMALL1=962, PSQT1=125, POS1=131, SMALL2=277, PSQT2=125, POS2=131, PMAT=534, NMAT=77871, OMAT=7191;
+int D_V = 77871, D_R50=199;
+TUNE(SMALL1, PSQT1, POS1, SMALL2, PSQT2, POS2, PMAT, NMAT, OMAT);
+auto DRange = [](int d){return std::pair<int, int>(d/4, d*4);};
+TUNE(SetRange(DRange), D_V, D_R50);
+
+bool Eval::use_smallnet(const Position& pos) { return std::abs(simple_eval(pos)) > SMALL1; }
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
@@ -62,26 +68,21 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     auto [psqt, positional] = smallNet ? networks.small.evaluate(pos, accumulators, caches.small)
                                        : networks.big.evaluate(pos, accumulators, caches.big);
 
-    Value nnue = (125 * psqt + 131 * positional) / 128;
+    Value nnue = (PSQT1 * psqt + POS1 * positional) / 128;
 
     // Re-evaluate the position when higher eval accuracy is worth the time spent
-    if (smallNet && (std::abs(nnue) < 277))
+    if (smallNet && (std::abs(nnue) < SMALL2))
     {
         std::tie(psqt, positional) = networks.big.evaluate(pos, accumulators, caches.big);
-        nnue                       = (125 * psqt + 131 * positional) / 128;
+        nnue                       = (PSQT2 * psqt + POS2 * positional) / 128;
         smallNet                   = false;
     }
 
-    // Blend optimism and eval with nnue complexity
-    int nnueComplexity = std::abs(psqt - positional);
-    optimism += optimism * nnueComplexity / 476;
-    nnue -= nnue * nnueComplexity / 18236;
-
-    int material = 534 * pos.count<PAWN>() + pos.non_pawn_material();
-    int v        = (nnue * (77871 + material) + optimism * (7191 + material)) / 77871;
+    int material = PMAT * pos.count<PAWN>() + pos.non_pawn_material();
+    int v        = (nnue * (NMAT + material) + optimism * (OMAT + material)) / D_V;
 
     // Damp down the evaluation linearly when shuffling
-    v -= v * pos.rule50_count() / 199;
+    v -= v * pos.rule50_count() / D_R50;
 
     // Guarantee evaluation does not hit the tablebase range
     v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);

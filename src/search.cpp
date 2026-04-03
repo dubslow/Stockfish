@@ -256,6 +256,11 @@ void Search::Worker::start_searching() {
     auto bestmove = UCIEngine::move(bestThread->rootMoves[0].pv[0], rootPos.is_chess960());
     main_manager()->updates.onBestmove(bestmove, ponder);
 }
+int O1=144;
+int D_O = 91;
+TUNE(O1);
+auto DRange2 = [](int d){return std::pair<int, int>(d/4, d*4);};
+TUNE(SetRange(DRange2), D_O);
 
 // Main iterative deepening loop. It calls search()
 // repeatedly with increasing depth until the allocated thinking time has been
@@ -359,7 +364,7 @@ void Search::Worker::iterative_deepening() {
             beta      = std::min(avg + delta, VALUE_INFINITE);
 
             // Adjust optimism based on root move's averageScore
-            optimism[us]  = 144 * avg / (std::abs(avg) + 91);
+            optimism[us]  = O1 * avg / (std::abs(avg) + D_O);
             optimism[~us] = -optimism[us];
 
             // Start with a small aspiration window and, in the case of a fail
