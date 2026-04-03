@@ -46,6 +46,12 @@ int Eval::simple_eval(const Position& pos) {
          - pos.non_pawn_material(~c);
 }
 
+int PSQT1=120, POS1=126, SMALL2=277, PMAT=534, NMAT=77871, OMAT=7191;
+int D_V=77871, D_R50=199;
+TUNE(PSQT1, POS1, SMALL2, PMAT, NMAT, OMAT);
+auto DRange = [](int d){return std::pair<int, int>(d/4, d*4);};
+TUNE(SetRange(DRange), D_V, D_R50);
+
 bool Eval::use_smallnet(const Position& pos) { return std::abs(simple_eval(pos)) > 962; }
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
@@ -62,28 +68,21 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     auto [psqt, positional] = smallNet ? networks.small.evaluate(pos, accumulators, caches.small)
                                        : networks.big.evaluate(pos, accumulators, caches.big);
 
-    Value nnue = (120 * psqt + 126 * positional) / 128;
+    Value nnue = (PSQT1 * psqt + POS1 * positional) / 128;
 
     // Re-evaluate the position when higher eval accuracy is worth the time spent
-    if (smallNet && (std::abs(nnue) < 277))
+    if (smallNet && (std::abs(nnue) < SMALL2))
     {
         std::tie(psqt, positional) = networks.big.evaluate(pos, accumulators, caches.big);
-        nnue                       = (120 * psqt + 126 * positional) / 128;
+        nnue                       = (PSQT1 * psqt + POS1 * positional) / 128;
         smallNet                   = false;
     }
 
-    // relics
-    //int ogopt = optimism;
-    //optimism = 132 * optimism / 64;
-    //dbg_mean_of(std::abs(optimism), 0);
-    //dbg_mean_of(std::abs(ogopt), 1);
-    //nnue = 123 * nnue / 128;
-
-    int material = 534 * pos.count<PAWN>() + pos.non_pawn_material();
-    int v        = (nnue * (77871 + material) + optimism * (7191 + material)) / 77871;
+    int material = PMAT * pos.count<PAWN>() + pos.non_pawn_material();
+    int v        = (nnue * (NMAT + material) + optimism * (OMAT + material)) / D_V;
 
     // Damp down the evaluation linearly when shuffling
-    v -= v * pos.rule50_count() / 199;
+    v -= v * pos.rule50_count() / D_R50;
 
     // Guarantee evaluation does not hit the tablebase range
     v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
