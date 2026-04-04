@@ -46,11 +46,8 @@ int Eval::simple_eval(const Position& pos) {
          - pos.non_pawn_material(~c);
 }
 
-int SMALL1=962, PSQT1=125, POS1=131, SMALL2=277, PSQT2=125, POS2=131, PMAT=534, NMAT=77871, OMAT=7191;
-int D_V = 77871, D_R50=199;
-TUNE(SMALL1, PSQT1, POS1, SMALL2, PSQT2, POS2, PMAT, NMAT, OMAT);
-auto DRange = [](int d){return std::pair<int, int>(d/4, d*4);};
-TUNE(SetRange(DRange), D_V, D_R50);
+constexpr int SMALL1=911, PSQT1=116, POS1=121, SMALL2=272, PSQT2=119, POS2=132, PMAT=541, NMAT=78800, OMAT=7332;
+constexpr int D_V = 78716, D_R50=194;
 
 bool Eval::use_smallnet(const Position& pos) { return std::abs(simple_eval(pos)) > SMALL1; }
 
