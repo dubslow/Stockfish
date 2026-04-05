@@ -38,7 +38,7 @@ namespace Stockfish {
 // depth       8 bit
 // pv node     1 bit
 // bound type  2 bit
-// generation  5 bit
+// generation  1 bit
 // move       16 bit
 // value      16 bit
 // evaluation 16 bit
@@ -50,7 +50,7 @@ namespace Stockfish {
 // externally, so we offset the internal depth by DEPTH_NONE.
 //
 // Pv, bound and generation are packed in a single byte.
-static constexpr uint8_t GENERATION_BITS = 5;
+static constexpr uint8_t GENERATION_BITS = 1;
 static constexpr uint8_t GENERATION_MASK = (1 << GENERATION_BITS) - 1;
 static constexpr uint8_t BOUND_SHIFT = GENERATION_BITS;
 static constexpr uint8_t BOUND_MASK  = 0b11 << BOUND_SHIFT;
@@ -210,7 +210,7 @@ uint8_t TranspositionTable::generation() const { return generation8; }
 // Looks up the current position in the transposition table.
 // It returns true if the key is found (which may be a collision), and has non-null data.
 // Otherwise, it returns false and a pointer to an empty or least valuable TTEntry
-// to be replaced later. The value of an entry is its depth minus 8 times its relative age.
+// to be replaced later.
 std::tuple<bool, TTData, TTWriter> TranspositionTable::probe(const Key key) const {
 
     TTEntry* const tte   = first_entry(key);
@@ -225,8 +225,8 @@ std::tuple<bool, TTData, TTWriter> TranspositionTable::probe(const Key key) cons
     // Find an entry to be replaced according to the replacement strategy
     TTEntry* replace = tte;
     for (int i = 1; i < ClusterSize; ++i)
-        if (replace->depth8 - 8 * replace->relative_age(generation8)
-            > tte[i].depth8 - 8 * tte[i].relative_age(generation8))
+        if (tte[i].relative_age(generation8) > replace->relative_age(generation8)
+            || tte[i].depth8 < replace->depth8)
             replace = &tte[i];
 
     return {false,
