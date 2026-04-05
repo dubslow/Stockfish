@@ -38,7 +38,7 @@ namespace Stockfish {
 // depth       8 bit
 // pv node     1 bit
 // bound type  2 bit
-// generation  5 bit
+// generation  1 bit
 // move       16 bit
 // value      16 bit
 // evaluation 16 bit
@@ -50,7 +50,7 @@ namespace Stockfish {
 // externally, so we offset the internal depth by DEPTH_NONE.
 //
 // Pv, bound and generation are packed in a single byte.
-static constexpr uint8_t GENERATION_BITS = 5;
+static constexpr uint8_t GENERATION_BITS = 1;
 static constexpr uint8_t GENERATION_MASK = (1 << GENERATION_BITS) - 1;
 static constexpr uint8_t BOUND_SHIFT = GENERATION_BITS;
 static constexpr uint8_t BOUND_MASK  = 0b11 << BOUND_SHIFT;
