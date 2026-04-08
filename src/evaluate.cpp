@@ -72,7 +72,11 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
         smallNet                   = false;
     }
 
-    // relic
+    // relics
+    //int ogopt = optimism;
+    //optimism = 132 * optimism / 64;
+    //dbg_mean_of(std::abs(optimism), 0);
+    //dbg_mean_of(std::abs(ogopt), 1);
     nnue = 123 * nnue / 128;
 
     int material = 534 * pos.count<PAWN>() + pos.non_pawn_material();
