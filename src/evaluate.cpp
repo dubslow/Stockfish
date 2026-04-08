@@ -72,8 +72,7 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
         smallNet                   = false;
     }
 
-    // relics
-    optimism = 132 * optimism / 64;
+    // relic
     nnue = 123 * nnue / 128;
 
     int material = 534 * pos.count<PAWN>() + pos.non_pawn_material();
