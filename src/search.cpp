@@ -1015,7 +1015,7 @@ moves_loop:  // When in check, search starts here
 
     value = bestValue;
 
-    int moveCount = 0;
+    int moveCount = 0, threadSkipMoves = threadIdx % 2;
 
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1037,6 +1037,14 @@ moves_loop:  // When in check, search starts here
             continue;
 
         ss->moveCount = ++moveCount;
+
+        if (!rootNode && !excludedMove && threadSkipMoves > 0 && depth > rootDepth * 7 / 8) // try to reduce redundant work
+        {
+            threadSkipMoves--;
+            excludedMove = move; // does this work?
+            continue;
+        }
+
 
         if (rootNode && is_mainthread() && nodes > 10000000)
         {
