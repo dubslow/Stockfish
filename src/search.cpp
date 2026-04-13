@@ -255,11 +255,8 @@ void Search::Worker::start_searching() {
     auto bestmove = UCIEngine::move(bestThread->rootMoves[0].pv[0], rootPos.is_chess960());
     main_manager()->updates.onBestmove(bestmove, ponder);
 }
-int O1=295;
-int D_O=85;
-TUNE(O1);
-auto DRange2 = [](int d){return std::pair<int, int>(d/4, d*4);};
-TUNE(SetRange(DRange2), D_O);
+constexpr int O1=287;
+constexpr int D_O=78;
 
 // Main iterative deepening loop. It calls search()
 // repeatedly with increasing depth until the allocated thinking time has been

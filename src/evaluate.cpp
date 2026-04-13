@@ -46,11 +46,8 @@ int Eval::simple_eval(const Position& pos) {
          - pos.non_pawn_material(~c);
 }
 
-int PSQT1=121, POS1=127, SMALL2=284, PMAT=542, NMAT=76286, OMAT=7139;
-int D_V=77904, D_R50=201;
-TUNE(PSQT1, POS1, SMALL2, PMAT, NMAT, OMAT);
-auto DRange = [](int d){return std::pair<int, int>(d/4, d*4);};
-TUNE(SetRange(DRange), D_V, D_R50);
+constexpr int PSQT1=127, POS1=133, PMAT=533, NMAT=78578, OMAT=7141;
+constexpr int D_V=84109, D_R50=201;
 
 bool Eval::use_smallnet(const Position& pos) { return std::abs(simple_eval(pos)) > 962; }
 
@@ -71,7 +68,7 @@ Value Eval::evaluate(const Eval::NNUE::Networks&    networks,
     Value nnue = (PSQT1 * psqt + POS1 * positional) / 128;
 
     // Re-evaluate the position when higher eval accuracy is worth the time spent
-    if (smallNet && (std::abs(nnue) < SMALL2))
+    if (smallNet && (std::abs(nnue) < 277))
     {
         std::tie(psqt, positional) = networks.big.evaluate(pos, accumulators, caches.big);
         nnue                       = (PSQT1 * psqt + POS1 * positional) / 128;
