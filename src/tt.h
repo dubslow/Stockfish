@@ -63,19 +63,6 @@ struct TTData {
 };
 
 
-// This is used to make racy, non-atomic writes to the global TT. Writes are not "guaranteed":
-// for chess reasons, we may decide the new data is less important than the old.
-struct TTWriter {
-   public:
-    void write(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
-
-   private:
-    friend class TranspositionTable;
-    TTEntry* entry;
-    TTWriter(TTEntry* tte);
-};
-
-
 class TranspositionTable {
 
    public:
@@ -93,7 +80,10 @@ class TranspositionTable {
     //   1) whether the entry already had data on this position
     //   2) a copy of the prior data, if any (may be self-inconsistent due to read races)
     //   3) a writer object to the entry
-    std::tuple<bool, TTData, TTWriter> probe(const Key key) const;
+    std::tuple<bool, TTData> probe(const Key key) const;
+    // Try to make a racy, non-atomic write to the global TT. This isn't "guaranteed":
+    // for chess reasons, we may decide the new data is less important than the old.
+    void write(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev) const;
     // The hash function; its only external use is memory prefetching
     TTEntry* first_entry(const Key key) const;
 
