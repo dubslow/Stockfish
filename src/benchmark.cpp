@@ -405,6 +405,10 @@ std::vector<std::string> setup_bench(const std::string& currentFen, std::istream
     if (fenFile == "default")
         fens = Defaults;
 
+    else if (fenFile == "gameplay")
+        for (auto game : BenchmarkPositions)
+            fens.insert(fens.end(), game.begin(), game.end());
+
     else if (fenFile == "current")
         fens.push_back(currentFen);
 
