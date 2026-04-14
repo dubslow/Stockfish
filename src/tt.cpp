@@ -116,16 +116,6 @@ uint8_t TTEntry::relative_age(const uint8_t curr_generation) const {
 }
 
 
-// TTWriter is but a very thin wrapper around the pointer
-TTWriter::TTWriter(TTEntry* tte) :
-    entry(tte) {}
-
-void TTWriter::write(
-  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t curr_generation) {
-    entry->save(k, v, pv, b, d, m, ev, curr_generation);
-}
-
-
 // A TranspositionTable is an array of Cluster, of size clusterCount. Each cluster consists of ClusterSize number
 // of TTEntry. Each non-empty TTEntry contains information on exactly one position. The size of a Cluster should
 // divide the size of a cache line for best performance, as the cacheline is prefetched when possible.
@@ -209,29 +199,45 @@ uint8_t TranspositionTable::generation() const { return generation8; }
 
 // Looks up the current position in the transposition table.
 // It returns true if the key is found (which may be a collision), and has non-null data.
-// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry
-// to be replaced later. The value of an entry is its depth minus 8 times its relative age.
-std::tuple<bool, TTData, TTWriter> TranspositionTable::probe(const Key key) const {
+// Otherwise, it returns false.
+std::tuple<bool, TTData> TranspositionTable::probe(const Key key) const {
 
-    TTEntry* const tte   = first_entry(key);
+    TTEntry* const cluster   = first_entry(key);
     const uint16_t key16 = uint16_t(key);  // Use the low 16 bits as key inside the cluster
 
     for (int i = 0; i < ClusterSize; ++i)
-        if (tte[i].key16 == key16)
+        if (cluster[i].key16 == key16)
             // This gap is the main place for read races.
             // After `read()` completes that copy is final, but may be self-inconsistent.
-            return {tte[i].is_occupied(), tte[i].read(), TTWriter(&tte[i])};
-
-    // Find an entry to be replaced according to the replacement strategy
-    TTEntry* replace = tte;
-    for (int i = 1; i < ClusterSize; ++i)
-        if (replace->depth8 - 8 * replace->relative_age(generation8)
-            > tte[i].depth8 - 8 * tte[i].relative_age(generation8))
-            replace = &tte[i];
+            return {cluster[i].is_occupied(), cluster[i].read()};
 
     return {false,
-            TTData{Move::none(), VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, false},
-            TTWriter(replace)};
+            TTData{Move::none(), VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, false}};
+}
+
+
+void TranspositionTable::write(
+  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev) const {
+
+    TTEntry* const cluster   = first_entry(k);
+    const uint16_t key16 = uint16_t(k);  // Use the low 16 bits as key inside the cluster
+
+    // First try to replace the same key...
+    for (int i = 0; i < ClusterSize; ++i)
+        if (cluster[i].key16 == key16)
+        {
+            cluster[i].save(k, v, pv, b, d, m, ev, generation8);
+            return;
+        }
+
+    // Otherwise, an entry's value is its depth minus 16 times its relative age.
+    // TODO: consolidate with TTEntry::save()?
+    TTEntry* worst = cluster; // == &cluster[0]
+    for (int i = 1; i < ClusterSize; ++i)
+        if (worst->depth8 - 16 * worst->relative_age(generation8)
+            > cluster[i].depth8 - 16 * cluster[i].relative_age(generation8))
+            worst = &cluster[i];
+    worst->save(k, v, pv, b, d, m, ev, generation8);
 }
 
 
