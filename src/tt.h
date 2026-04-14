@@ -65,14 +65,14 @@ struct TTData {
 
 // This is used to make racy, non-atomic writes to the global TT. Writes are not "guaranteed":
 // for chess reasons, we may decide the new data is less important than the old.
-struct TTWriter {
+class TTWriter {
    public:
     void write(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t generation8);
 
    private:
     friend class TranspositionTable;
-    TTEntry* entry;
-    TTWriter(TTEntry* tte);
+    TTEntry* const cluster; // is this worth saving vs re-hashing?
+    TTWriter(TTEntry* cl);
 };
 
 
