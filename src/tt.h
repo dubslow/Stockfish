@@ -95,14 +95,13 @@ class TranspositionTable {
     //   2) a copy of the prior data, if any (may be self-inconsistent due to read races)
     //   3) a writer object to the entry
     std::tuple<bool, TTData, TTWriter> probe(const Key key) const;
-    // The hash function; its only external use is memory prefetching
-    TTEntry* first_entry(const Key key) const;
 
    private:
     friend struct TTEntry;
 
     size_t   clusterCount;
     Cluster* table = nullptr;
+    TTEntry* first_entry(const Key key) const; // The hash function
 
     uint8_t generation8 = 0;
 };

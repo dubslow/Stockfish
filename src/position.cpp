@@ -832,7 +832,6 @@ void Position::do_move(Move                      m,
                        bool                      givesCheck,
                        DirtyPiece&               dp,
                        DirtyThreats&             dts,
-                       const TranspositionTable* tt      = nullptr,
                        const SharedHistories*    history = nullptr) {
 
     assert(m.is_ok());
@@ -1037,8 +1036,6 @@ void Position::do_move(Move                      m,
 
     // Update the key with the final value
     st->key = k;
-    if (tt)
-        prefetch(tt->first_entry(key()));
 
     if (history)
     {
