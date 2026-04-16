@@ -221,23 +221,28 @@ void TranspositionTable::write(
   Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev) const {
 
     TTEntry* const cluster   = first_entry(k);
-    const uint16_t key16 = uint16_t(k);  // Use the low 16 bits as key inside the cluster
+    TTEntry* choice          = cluster;  // == &cluster[0]
 
-    // First try to replace the same key...
-    for (int i = 0; i < ClusterSize; ++i)
-        if (cluster[i].key16 == key16)
+    // First try to replace the same key, otherwise an entry's value is
+    // its depth minus 8x its relative age.
+    int worstValue = choice->depth8 - 8 * choice->relative_age(generation8);
+    const uint16_t key16 = uint16_t(k);  // Use the low 16 bits as key inside the cluster
+    if (key16 != choice->key16)
+        for (int i = 1; i < ClusterSize; ++i)
         {
-            cluster[i].save(k, v, pv, b, d, m, ev, generation8);
-            return;
+            if (cluster[i].key16 == key16)
+            {
+                choice = &cluster[i];
+                break;
+            }
+            if (worstValue > cluster[i].depth8 - 8 * cluster[i].relative_age(generation8))
+            {
+                worstValue = cluster[i].depth8 - 8 * cluster[i].relative_age(generation8);
+                choice = &cluster[i];
+            }
         }
 
-    // Otherwise, an entry's value is its depth minus 8 times its relative age.
-    TTEntry* worst = cluster; // == &cluster[0]
-    for (int i = 1; i < ClusterSize; ++i)
-        if (worst->depth8 - 8 * worst->relative_age(generation8)
-            > cluster[i].depth8 - 8 * cluster[i].relative_age(generation8))
-            worst = &cluster[i];
-    worst->save(k, v, pv, b, d, m, ev, generation8);
+    choice->save(k, v, pv, b, d, m, ev, generation8);
 }
 
 
