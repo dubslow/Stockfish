@@ -258,14 +258,11 @@ void Search::Worker::start_searching() {
     main_manager()->updates.onBestmove(bestmove, ponder);
 }
 
-int O1=144, PR1=195, ED1=-214, ED2=171, ED3=60, ED4=10, ED5=12, RZ1=502, RZ2=306, PC1=224, PC2=61, PC3=416;
-int FV1=218, FV2=223, FV3=131, FV4=42, FV5=151, FV6=120, FV7=86, BS1=110, BS2=73, CH1=12, CH2=17, CH3=1069;
-int QS1=328;
-int DD=10208, DO=91, DCV1=180600, DCV2=25600;
-TUNE(O1, PR1, ED1, ED2, ED3, ED4, ED5, RZ1, RZ2, PC1, PC2, PC3);
-TUNE(FV1, FV2, FV3, FV4, FV5, FV6, FV7, BS1, BS2, CH1, CH2, CH3, QS1);
-auto DRange2 = [](int d){return std::pair<int, int>(d/4, d*4);};
-TUNE(SetRange(DRange2), DD, DO, DCV1, DCV2);
+
+constexpr int O1=144, PR1=196, ED1=-214, ED2=170, ED3=61, ED4=10, ED5=12, RZ1=508, RZ2=306, PC1=223, PC2=61, PC3=412;
+constexpr int FV1=219, FV2=221, FV3=133, FV4=42, FV5=151, FV6=119, FV7=87, BS1=110, BS2=73, CH1=12, CH2=17, CH3=1062;
+constexpr int QS1=330;
+constexpr int DD=10412, DO=90, DCV1=176083, DCV2=25891;
 
 // Main iterative deepening loop. It calls search()
 // repeatedly with increasing depth until the allocated thinking time has been
