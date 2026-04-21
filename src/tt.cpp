@@ -57,7 +57,6 @@ static constexpr uint8_t BOUND_MASK      = 0b11 << BOUND_SHIFT;
 static constexpr uint8_t PV_SHIFT        = BOUND_SHIFT + 2;
 static constexpr uint8_t PV_MASK         = 1 << PV_SHIFT;
 
-
 struct TTEntry {
 
     // Convert internal bitfields to external types
@@ -84,7 +83,6 @@ struct TTEntry {
     int16_t  value16;
     int16_t  eval16;
 };
-
 
 // Populates the TTEntry with a new node's data, possibly
 // overwriting an old position. The update is non-atomic and can be racy.
@@ -220,8 +218,8 @@ std::tuple<bool, TTData> TranspositionTable::probe(const Key key) const {
 void TranspositionTable::write(
   Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev) const {
 
-    TTEntry* const cluster   = first_entry(k);
-    const uint16_t key16 = uint16_t(k);  // Use the low 16 bits as key inside the cluster
+    TTEntry* const cluster = first_entry(k);
+    const uint16_t key16   = uint16_t(k);  // Use the low 16 bits as key inside the cluster
 
     // First try to replace the same key...
     for (int i = 0; i < ClusterSize; ++i)
@@ -231,14 +229,14 @@ void TranspositionTable::write(
             return;
         }
 
-    // Otherwise, an entry's worth is its depth minus 12 times its relative age.
-    auto worth = /*template<bool newPv>*/[this](TTEntry* const old) -> int
-    {
-        return old->depth8 - 12 * old->relative_age(generation8);
+    // Otherwise, rank entries by depth, age, and possibly PVness
+    auto score = [&, this, pv](TTEntry* const old) -> int
+    {   // If new is pv, aggressively replace, else more carefully
+        return old->depth8 - 12 * old->relative_age(generation8) + 32 * (!pv && bool(old->genBound8 & PV_MASK));
     };
-    TTEntry* worst = cluster; // == &cluster[0]
+    TTEntry* worst = &cluster[0];
     for (int i = 1; i < ClusterSize; ++i)
-        if (worth(&cluster[i]) < worth(worst))
+        if (score(&cluster[i]) < score(worst))
             worst = &cluster[i];
     worst->save(k, v, pv, b, d, m, ev, generation8);
 }
