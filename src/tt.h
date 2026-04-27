@@ -30,7 +30,6 @@ namespace Stockfish {
 
 class ThreadPool;
 struct TTEntry;
-struct Cluster;
 
 // There is only one global hash table for the engine and all its threads. For chess in particular, we even allow racy
 // updates between threads to and from the TT, as taking the time to synchronize access would cost thinking time and
@@ -102,7 +101,7 @@ class TranspositionTable {
     friend struct TTEntry;
 
     size_t   clusterCount;
-    Cluster* table = nullptr;
+    TTEntry* table = nullptr;
 
     uint8_t generation8 = 0;
 };
