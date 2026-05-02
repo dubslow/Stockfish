@@ -118,16 +118,6 @@ uint8_t TTEntry::relative_age(const uint8_t curr_generation) const {
 }
 
 
-// TTWriter is but a very thin wrapper around the pointer
-TTWriter::TTWriter(TTEntry* tte) :
-    entry(tte) {}
-
-void TTWriter::write(
-  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t curr_generation) {
-    entry->save(k, v, pv, b, d, m, ev, curr_generation);
-}
-
-
 // Sets the size of the transposition table, measured in megabytes.
 void TranspositionTable::resize(size_t mbSize, ThreadPool& threads) {
     aligned_large_pages_free(table);
@@ -189,26 +179,25 @@ void TranspositionTable::new_search() {
 }
 
 
-uint8_t TranspositionTable::generation() const { return generation8; }
-
-
 // Looks up the current position in the transposition table.
 // It returns true if the key is found (which may be a collision), and has non-null data.
-// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry
-// to be replaced later. The value of an entry is its depth minus 8 times its relative age.
-std::tuple<bool, TTData, TTWriter> TranspositionTable::probe(const Key key) const {
+std::tuple<bool, TTData> TranspositionTable::probe(const Key key) const {
 
     TTEntry* const tte   = first_entry(key);
     const uint16_t key16 = uint16_t(key);  // Use the low 16 bits as key inside the cluster
 
-
         if (tte->key16 == key16)
             // This gap is the main place for read races.
             // After `read()` completes that copy is final, but may be self-inconsistent.
-            return {tte->is_occupied(), tte->read(), TTWriter(tte)};
+            return {tte->is_occupied(), tte->read()};
 
-    return {false, TTData{Move::none(), VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, false},
-            TTWriter(tte)};
+    return {false, TTData{Move::none(), VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, false}};
+}
+
+void TranspositionTable::write(
+  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev) const {
+    TTEntry* tte = first_entry(k);
+    tte->save(k, v, pv, b, d, m, ev, generation8);
 }
 
 
