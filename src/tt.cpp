@@ -89,12 +89,8 @@ struct TTEntry {
 void TTEntry::save(
   Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, uint8_t curr_generation) {
 
-    // Preserve the old ttmove if we don't have a new one
-    if (m || uint16_t(k) != key16)
-        move16 = m;
-
     // Overwrite less valuable entries (cheapest checks first)
-    if (b == BOUND_EXACT || uint16_t(k) != key16 || d - DEPTH_NONE + 2 * pv > depth8 - 4
+    if (b == BOUND_EXACT || d - DEPTH_NONE + 2 * pv + 8 * (uint16_t(k) != key16) > depth8 - 4
         || relative_age(curr_generation))
     {
         assert(d > DEPTH_NONE);
@@ -104,6 +100,7 @@ void TTEntry::save(
         key16     = uint16_t(k);
         depth8    = uint8_t(d - DEPTH_NONE);
         genBound8 = uint8_t(curr_generation | b << BOUND_SHIFT | uint8_t(pv) << PV_SHIFT);
+        if (m) move16 = m; // Preserve the old ttmove if we don't have a new one
         value16   = int16_t(v);
         eval16    = int16_t(ev);
     }
