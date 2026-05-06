@@ -834,6 +834,13 @@ Value Search::Worker::search(
             else
                 return ttData.value;
         }
+    } // No cutoff... why?
+    else if (!PvNode && !excludedMove && ttData.depth > depth - (ttData.value <= beta)
+             && is_valid(ttData.value) && ttData.bound != BOUND_EXACT
+             && ttData.bound & (ttData.value >= beta ? BOUND_UPPER : BOUND_LOWER)
+             && depth > 5)
+    { // we could have cutoff except for its bound mismatching our window
+        ttWriter.penalize(1);
     }
 
     // Step 6. Tablebases probe
