@@ -131,6 +131,8 @@ class Position {
     void     update_slider_blockers(Color c) const;
     template<PieceType Pt>
     Bitboard attacks_by(Color c) const;
+    int king_mobility() const; // How much of its ring our king can legally move to
+    int king_mobility(Color c); // Same but for the other king
 
     // Properties of moves
     bool  legal(Move m) const;

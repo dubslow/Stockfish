@@ -84,6 +84,8 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
     for (Bitboard b = pos.checkers(); b;)
         os << UCIEngine::square(pop_lsb(b)) << " ";
 
+    os << "\nkingmob:  " << pos.king_mobility();
+
     if (Tablebases::MaxCardinality >= popcount(pos.pieces()) && !pos.can_castle(ANY_CASTLING))
     {
         StateInfo st;
@@ -660,6 +662,35 @@ bool Position::attackers_to_exist(Square s, Bitboard occupied, Color c) const {
         || (attacks_bb<PAWN>(s, ~c) & pieces(c, PAWN))
         || (attacks_bb<KNIGHT>(s) & pieces(c, KNIGHT)) || (attacks_bb<KING>(s) & pieces(c, KING));
 }
+
+int Position::king_mobility() const {
+    int count = 0;
+    Color us = sideToMove;
+    Square ksq = square<KING>(us);
+    Bitboard ring = attacks_bb<KING>(ksq);
+    while (ring)
+    {
+        Square s = pop_lsb(ring);
+        Move m(ksq, s);
+        count += (pseudo_legal(m) && !(attackers_to_exist(s, pieces() ^ ksq, ~us)));
+        // The latter term is copied from ::legal
+    }
+    return count;
+}
+
+int Position::king_mobility(Color c) {
+    if (c == sideToMove)
+        return king_mobility();
+
+    // Hack! Since we only evaluate when !checkers(), we can skip do_null_move machinery
+    // and simply hack sideToMove for the purpose of ::pseudo_legal.
+    assert(!checkers());
+    sideToMove = ~sideToMove;
+    int kmob = king_mobility();
+    sideToMove = ~sideToMove;
+    return kmob;
+}
+
 
 // Tests whether a pseudo-legal move is legal
 bool Position::legal(Move m) const {
