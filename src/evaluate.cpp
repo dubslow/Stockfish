@@ -36,6 +36,31 @@
 
 namespace Stockfish {
 
+std::tuple<unsigned, unsigned> king_mobility_second(const Position& pos, Color c);
+
+inline int material_eval(const Position& pos) {
+    Color us = pos.side_to_move();
+    return PawnValue * (pos.count<PAWN>(us) - pos.count<PAWN>(~us))
+          + pos.non_pawn_material(us) - pos.non_pawn_material(~us);
+}
+
+constexpr Value TwoKings = RookValue + BishopValue; // king = 4 points, i.e. the average of a rook and bishop
+inline bool use_mating_eval(const Position& pos, int abs_material_ev) {
+    constexpr float advantageKRK = float(RookValue - 1) / (TwoKings + RookValue); // R-1 to ensure the following float equality holds
+    return float(abs_material_ev) / (TwoKings + pos.non_pawn_material()) >= advantageKRK;
+}
+
+static int mating_eval(const Position& pos, int material_ev) {
+    assert(material_ev != 0);
+
+    Color us = pos.side_to_move();
+    Color loser = (material_ev < 0) ? us : ~us;
+
+    auto [mob1, mob2] = king_mobility_second(pos, loser); // first ring 0-8, second ring 0-16
+    int bonus = 4 * PawnValue / (1 + 4 * mob1) + PawnValue / (1 + mob2);
+    return material_ev + (loser == us ? -bonus : +bonus);
+}
+
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
 Value Eval::evaluate(const Eval::NNUE::Network&     network,
@@ -45,6 +70,10 @@ Value Eval::evaluate(const Eval::NNUE::Network&     network,
                      int                            optimism) {
 
     assert(!pos.checkers());
+
+    int material_ev = material_eval(pos);
+    if (use_mating_eval(pos, std::abs(material_ev)))
+        return mating_eval(pos, material_ev);
 
     auto [psqt, positional] = network.evaluate(pos, accumulators, caches);
 
@@ -99,6 +128,35 @@ std::string Eval::trace(Position& pos, const Eval::NNUE::Network& network) {
     ss << " [with scaled NNUE, ...]\n";
 
     return ss.str();
+}
+
+constexpr unsigned king_mob_count(const Position& pos, Color c, Square ksq, Bitboard candidates) {
+    // Among the candidate squares, how many could our king teleport to?
+    unsigned count = 0;
+    while (candidates)
+    {
+        Square to = pop_lsb(candidates);
+        // Can't capture friendlies, can't go into check
+        count += (!(pos.pieces(c) & to) && !(pos.attackers_to_exist(to, pos.pieces() ^ ksq, ~c)));
+    }
+    return count;
+}
+
+// Return first-ring and second-ring king (pseudo-)mobility. Doesn't count "in check" so may return 0s.
+// This implicitly encodes some side/corner awareness as the rings' sizes shrink.
+std::tuple<unsigned, unsigned> king_mobility_second(const Position& pos, Color c) {
+    Square ksq = pos.square<KING>(c);
+    Bitboard ring = Attacks::attacks_bb<KING>(ksq);
+    unsigned mob1 = king_mob_count(pos, c, ksq, ring);
+    Bitboard outer = 0, inner = ring | ksq;
+    while (ring)
+    {
+        Square r = pop_lsb(ring);
+        outer |= Attacks::attacks_bb<KING>(r);
+    }
+    outer &= ~inner;
+    unsigned mob2 = king_mob_count(pos, c, ksq, outer);
+    return {mob1, mob2};
 }
 
 }  // namespace Stockfish
