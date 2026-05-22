@@ -37,6 +37,8 @@
 
 namespace Stockfish {
 
+unsigned king_mobility(const Position& pos, Color c);
+
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
 Value Eval::evaluate(const Eval::NNUE::Network&     network,
@@ -58,6 +60,16 @@ Value Eval::evaluate(const Eval::NNUE::Network&     network,
 
     int material = 534 * pos.count<PAWN>() + pos.non_pawn_material();
     int v        = (nnue * i64(77871 + material) + optimism * i64(7191 + material)) / 77871;
+
+    // Assist matefinding
+    if (std::abs(v) > 2000)
+    {
+        Color us = pos.side_to_move();
+        if (v < 0)
+            v -= 256 * (8 - king_mobility(pos, us));
+        else
+            v += 256 * (8 - king_mobility(pos, ~us));
+    }
 
     // Damp down the evaluation linearly when shuffling
     v -= v * pos.rule50_count() / 199;
@@ -100,6 +112,25 @@ std::string Eval::trace(Position& pos, const Eval::NNUE::Network& network) {
     ss << " [with scaled NNUE, ...]\n";
 
     return ss.str();
+}
+
+constexpr unsigned king_mob_count(const Position& pos, Color c, Square ksq, Bitboard candidates) {
+    // Among the candidate squares, how many could our king teleport to?
+    unsigned count = 0;
+    while (candidates)
+    {
+        Square to = pop_lsb(candidates);
+        // Can't capture friendlies, can't go into check
+        count += (!(pos.pieces(c) & to) && !(pos.attackers_to_exist(to, pos.pieces() ^ ksq, ~c)));
+    }
+    return count;
+}
+
+// Doesn't count "in check" so may return 0
+unsigned king_mobility(const Position& pos, Color c) {
+    Square ksq = pos.square<KING>(c);
+    Bitboard ring = Attacks::attacks_bb<KING>(ksq);
+    return king_mob_count(pos, c, ksq, ring);
 }
 
 }  // namespace Stockfish
