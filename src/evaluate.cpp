@@ -36,7 +36,7 @@
 
 namespace Stockfish {
 
-unsigned king_mobility(const Position& pos, Color c = COLOR_NB);
+std::tuple<unsigned, unsigned> king_mobility_second(const Position& pos, Color c);
 
 constexpr Value TwoKings = RookValue + BishopValue; // king = 4 points, i.e. the average of a rook and bishop
 
@@ -57,7 +57,8 @@ int mating_eval(const Position& pos, int material_ev) {
     Color us = pos.side_to_move();
     Color loser = (material_ev < 0) ? us : ~us;
 
-    int bonus = PawnValue / (king_mobility(pos, loser) + 1);
+    auto [mob1, mob2] = king_mobility_second(pos, loser);
+    int bonus = 4 * PawnValue / (1 + 4 * mob1) + PawnValue / (1 + mob2);
     return material_ev + (loser == us ? -bonus : +bonus);
 }
 
@@ -143,10 +144,19 @@ constexpr unsigned king_mob_count(const Position& pos, Color c, Square ksq, Bitb
 }
 
 // Doesn't count "in check" so may return 0
-unsigned king_mobility(const Position& pos, Color c) {
+std::tuple<unsigned, unsigned> king_mobility_second(const Position& pos, Color c) {
     Square ksq = pos.square<KING>(c);
     Bitboard ring = Attacks::attacks_bb<KING>(ksq);
-    return king_mob_count(pos, c, ksq, ring);
+    unsigned mob1 = king_mob_count(pos, c, ksq, ring);
+    Bitboard outer = 0, inner = ring | ksq;
+    while (ring)
+    {
+        Square r = pop_lsb(ring);
+        outer |= Attacks::attacks_bb<KING>(r);
+    }
+    outer &= ~inner;
+    unsigned mob2 = king_mob_count(pos, c, ksq, outer);
+    return {mob1, mob2};
 }
 
 }  // namespace Stockfish
