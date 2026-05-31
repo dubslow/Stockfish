@@ -119,7 +119,7 @@ void TTEntry::save(
     {
         auto v16 = value16;
         if (std::abs(v16) < VALUE_INFINITE && is_decisive(v16))
-            depth8--;
+            depth8 = std::max(int(depth8) - 1, 0);
     }
 }
 
@@ -141,7 +141,7 @@ void TTWriter::write(
     entry->save(k, v, pv, b, d, m, ev, curr_generation);
 }
 
-void TTWriter::penalize(int penalty) { entry->depth8 -= penalty; }
+void TTWriter::penalize(int penalty) { entry->depth8 = std::max(int(entry->depth8) - penalty, 0); }
 
 
 // A TranspositionTable is an array of Cluster, of size clusterCount. Each cluster consists of ClusterSize number
