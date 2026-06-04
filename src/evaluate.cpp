@@ -36,6 +36,19 @@
 
 namespace Stockfish {
 
+inline int simple_eval(const Position& pos) {
+    Color c = pos.side_to_move();
+    return PawnValue * (pos.count<PAWN>(c) - pos.count<PAWN>(~c)) + pos.non_pawn_material(c)
+         - pos.non_pawn_material(~c);
+}
+
+constexpr Value TwoKings = RookValue + BishopValue; // king = 4 points, i.e. the average of a rook and bishop
+constexpr float advantageKRK = float(RookValue - 1) / (TwoKings + RookValue); // R-1 to ensure the following float equality holds
+inline bool use_mating_eval(const Position& pos, int abs_material_ev) {
+    return float(abs_material_ev) / (TwoKings + pos.non_pawn_material() + PawnValue * pos.count<PAWN>())
+           >= advantageKRK;
+}
+
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
 Value Eval::evaluate(const Eval::NNUE::Network&     network,
@@ -45,6 +58,10 @@ Value Eval::evaluate(const Eval::NNUE::Network&     network,
                      int                            optimism) {
 
     assert(!pos.checkers());
+
+    int sEv = simple_eval(pos);
+    if (use_mating_eval(pos, std::abs(sEv)))
+        return sEv;
 
     auto [psqt, positional] = network.evaluate(pos, accumulators, caches);
 
