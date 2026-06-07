@@ -886,12 +886,12 @@ Value Search::Worker::search(
             else
                 return ttData.value;
         }
-    }  // No cutoff, but why? Does the stored inexact value mismatch our aspiration window?
+    }  // No cutoff, but why?
     else if (!PvNode && !excludedMove && ttData.depth > depth - (ttData.value <= beta)
              && is_valid(ttData.value) && ttData.bound != BOUND_EXACT
              && ttData.bound & (ttData.value >= beta ? BOUND_UPPER : BOUND_LOWER) && depth > 5)
-    {  // If a window-bound mismatch is the only reason cutoff failed, penalize the now-useless tte
-        ttWriter.penalize(1);
+    {  // If a window-vs-bound mismatch is the only reason cutoff failed, penalize the now-useless tte
+        ttWriter.penalize(depth / 10);
     }
 
     // Step 6. Tablebases probe
