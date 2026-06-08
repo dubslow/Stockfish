@@ -227,13 +227,7 @@ NnueEvalTrace Network::trace_evaluate(const Position&    pos,
 
 void Network::load_user_net(const std::string& dir, const std::string& evalfilePath) {
     std::ifstream stream(dir + evalfilePath, std::ios::binary);
-    auto          description = load(stream);
-
-    if (description.has_value())
-    {
-        evalFile.current        = evalfilePath;
-        evalFile.netDescription = description.value();
-    }
+    load(stream, evalfilePath);
 }
 
 
@@ -256,13 +250,7 @@ void Network::load_internal() {
                         usize(gEmbeddedNNUESize));
 
     std::istream stream(&buffer);
-    auto         description = load(stream);
-
-    if (description.has_value())
-    {
-        evalFile.current        = evalFile.defaultName;
-        evalFile.netDescription = description.value();
-    }
+    load(stream, evalFile.defaultName);
 }
 
 
@@ -279,11 +267,16 @@ bool Network::save(std::ostream&      stream,
 }
 
 
-std::optional<std::string> Network::load(std::istream& stream) {
+void Network::load(std::istream& stream, const std::string& filename) {
     initialize();
     std::string description;
 
-    return read_parameters(stream, description) ? std::make_optional(description) : std::nullopt;
+    bool success = read_parameters(stream, description);
+    if (success)
+    {
+        evalFile.current        = filename;
+        evalFile.netDescription = description;
+    }
 }
 
 
