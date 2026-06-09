@@ -278,10 +278,10 @@ class SearchManager: public ISearchManager {
 
     void check_time(Search::Worker& worker) override;
 
-    void pv(Search::Worker&           worker,
-            const ThreadPool&         threads,
-            const TranspositionTable& tt,
-            Depth                     depth);
+    void output_pv(Search::Worker&           worker,
+                   const ThreadPool&         threads,
+                   const TranspositionTable& tt,
+                   Depth                     depth);
 
     Stockfish::TimeManagement tm;
     double                    originalTimeAdjust;

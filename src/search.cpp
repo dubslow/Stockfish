@@ -249,9 +249,9 @@ void Search::Worker::start_searching() {
 
     // Send PV info if it has changed since last output in iterative_deepening().
     if (!uciPvSent || bestThread != this)
-        main_manager()->pv(*bestThread, threads, tt, bestThread->rootDepth);
+        main_manager()->output_pv(*bestThread, threads, tt, bestThread->rootDepth);
 
-    // In rare cases, pv() may change the ponder move through syzygy_extend_pv().
+    // In rare cases, output_pv() may change the ponder move through syzygy_extend_pv().
     std::string ponder;
     if (bestThread->rootMoves[0].pv.size() > 1)
         ponder = UCIEngine::move(bestThread->rootMoves[0].pv[1], rootPos.is_chess960());
@@ -404,7 +404,7 @@ bool Search::Worker::iterative_deepening() {
                 // at nodes > 10M (rather than depth N, which can be reached quickly)
                 if (mainThread && multiPV == 1 && (bestValue <= alpha || bestValue >= beta)
                     && nodes > NODES_LIMIT_OUTPUT)
-                    main_manager()->pv(*this, threads, tt, rootDepth);
+                    main_manager()->output_pv(*this, threads, tt, rootDepth);
 
                 // In case of failing low/high increase aspiration window and re-search,
                 // otherwise exit the loop.
@@ -454,7 +454,7 @@ bool Search::Worker::iterative_deepening() {
 
             if (mainThread && !threads.stop && (pvIdx + 1 == multiPV || nodes > NODES_LIMIT_OUTPUT))
             {
-                main_manager()->pv(*this, threads, tt, rootDepth);
+                main_manager()->output_pv(*this, threads, tt, rootDepth);
                 uciPvSent = (pvIdx + 1 == multiPV);
             }
 
@@ -2161,10 +2161,10 @@ void syzygy_extend_pv(const OptionsMap&         options,
           << sync_endl;
 }
 
-void SearchManager::pv(Search::Worker&           worker,
-                       const ThreadPool&         threads,
-                       const TranspositionTable& tt,
-                       Depth                     depth) {
+void SearchManager::output_pv(Search::Worker&           worker,
+                              const ThreadPool&         threads,
+                              const TranspositionTable& tt,
+                              Depth                     depth) {
 
     const auto nodes     = threads.nodes_searched();
     auto&      rootMoves = worker.rootMoves;
