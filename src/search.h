@@ -395,11 +395,12 @@ class Worker {
     // The main thread has a SearchManager, the others have a NullSearchManager
     std::unique_ptr<ISearchManager> manager;
 
-    Tablebases::Config tbConfig;
+    Tablebases::Config  tbConfig;
+    bool                skipWDL;
+    const OptionsMap&   options;
+    ThreadPool&         threads;
+    TranspositionTable& tt;
 
-    const OptionsMap&                                        options;
-    ThreadPool&                                              threads;
-    TranspositionTable&                                      tt;
     const LazyNumaReplicatedSystemWide<Eval::NNUE::Network>& network;
 
     // Used by NNUE

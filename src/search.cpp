@@ -857,7 +857,7 @@ Value Search::Worker::search(
     }
 
     // Step 6. Tablebases probe
-    if (!rootNode && !excludedMove && tbConfig.cardinality)
+    if (!rootNode && !excludedMove && !skipWDL)
     {
         int piecesCount = pos.count<ALL_PIECES>();
 
@@ -2126,7 +2126,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
         TB::Config config = TB::rank_root_moves(options, pos, legalMoves, true, time_abort);
 
         // If DTZ is not available we might not find a mate, so we bail out
-        if (!config.rootInTB || config.cardinality > 0)
+        if (!config.rootInTB || !config.dtzAvailable)
             break;
 
         ply++;

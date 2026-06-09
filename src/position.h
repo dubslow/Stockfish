@@ -176,7 +176,7 @@ class Position {
     int   rule50_count() const;
     Value non_pawn_material(Color c) const;
     Value non_pawn_material() const;
-    bool dtz_is_dtm() const;
+    bool dtz_is_dtm() const; // Pawnless and (3-men or 4-men-minors-only)
 
     // Position consistency check, for debugging
     bool pos_is_ok() const;

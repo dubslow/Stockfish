@@ -313,7 +313,10 @@ void ThreadPool::start_thinking(const OptionsMap&  options,
         for (const auto& m : legalmoves)
             rootMoves.emplace_back(m);
 
+    // Test what TBs are available
     Tablebases::Config tbConfig = Tablebases::rank_root_moves(options, pos, rootMoves);
+    // ... however, sometimes it is a waste to WDL probe while searching
+    bool skipWDL = tbConfig.dtzAvailable || rootMoves[0].tbScore <= VALUE_DRAW;
 
     // After ownership transfer 'states' becomes empty, so if we stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
@@ -338,6 +341,7 @@ void ThreadPool::start_thinking(const OptionsMap&  options,
             th->worker->rootPos.set(pos.fen(), pos.is_chess960(), &th->worker->rootState);
             th->worker->rootState = setupStates->back();
             th->worker->tbConfig  = tbConfig;
+            th->worker->skipWDL   = skipWDL;
         });
     }
 
