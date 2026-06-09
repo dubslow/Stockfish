@@ -39,10 +39,11 @@ using RootMoves = std::vector<RootMove>;
 namespace Stockfish::Tablebases {
 
 struct Config {
-    int   cardinality = 0;
-    bool  rootInTB    = false;
-    bool  useRule50   = false;
-    Depth probeDepth  = 0;
+    int   cardinality  = 0;
+    bool  rootInTB     = false;
+    bool  useRule50    = false;
+    Depth probeDepth   = 0;
+    bool  dtzAvailable = false;
 };
 
 enum WDLScore {
