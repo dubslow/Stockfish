@@ -749,6 +749,7 @@ Value Search::Worker::search(
     (ss + 2)->cutoffCnt = 0;
 
     const auto correctionValue = correction_value(*this, pos, ss);
+    Value unadjustedStaticEval = VALUE_NONE;
 
     // Step 4. Transposition table lookup
     excludedMove                   = ss->excludedMove;
@@ -761,8 +762,30 @@ Value Search::Worker::search(
     ss->ttPv     = excludedMove ? ss->ttPv : PvNode || (ttHit && ttData.is_pv);
     ttCapture    = ttData.move && pos.capture_stage(ttData.move);
 
+    // Have a go at DTM
+    Value provenMate = VALUE_NONE;
+    if (!ss->excludedMove)
+        provenMate = maybe_probe_dtm(pos, ss->ply);
+    const bool gotDTM = provenMate != VALUE_NONE;
+    if (gotDTM)
+    {
+        if (!rootNode)
+        {   // is probing TT faster than probing dtz/dtm?
+            //ttWriter.write(posKey, value_to_tt(provenMate, ss->ply), true, BOUND_EXACT,
+            //               std::min(MAX_PLY - 1, depth + 6), Move::none(), value_to_tt(provenMate, ss->ply),
+            //               tt.generation());
+            return provenMate;
+        }
+        else
+        {
+            beta = maxValue = value = bestValue = provenMate;
+            improving = false;
+            alpha = beta - 1;
+            goto moves_loop;
+        }
+    }
+
     // Step 5. Static evaluation of the position
-    Value unadjustedStaticEval = VALUE_NONE;
 
     // Skip early pruning when in check
     if (ss->inCheck)
@@ -1075,7 +1098,6 @@ moves_loop:  // When in check, search starts here
         // searched and those of lower "TB rank" if we are in a TB root position.
         if (rootNode && !std::count(rootMoves.begin() + pvIdx, rootMoves.begin() + pvLast, move))
             continue;
-
         ss->moveCount = ++moveCount;
 
         if (rootNode && is_mainthread() && nodes > NODES_LIMIT_OUTPUT)
@@ -1453,7 +1475,7 @@ moves_loop:  // When in check, search starts here
             else
                 quietsSearched.push_back(move);
         }
-    }
+    } // moves loop
 
     // Step 21. Check for mate and stalemate
     // All legal moves have been searched and if there are no legal moves, it
@@ -1468,6 +1490,15 @@ moves_loop:  // When in check, search starts here
 
     if (!moveCount)
         bestValue = excludedMove ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
+
+    else if (rootNode && gotDTM)
+    {
+        // Overwrite search results?
+        // TODO: mark search as "complete", uci shows "lowerbound"
+        Value v; // just to match the signature
+        syzygy_extend_pv(options, limits, pos, rootMoves[pvIdx], v); // is [pvIdx] the correct thing here?
+        return provenMate;
+    }
 
     // If there is a move that produces search value greater than alpha,
     // we update the stats of searched moves.
@@ -1607,6 +1638,12 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
     ttData.move  = ttHit ? ttData.move : Move::none();
     ttData.value = ttHit ? value_from_tt(ttData.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     pvHit        = ttHit && ttData.is_pv;
+
+    Value provenMate = VALUE_NONE;
+    if (!ss->excludedMove)
+        provenMate = maybe_probe_dtm(pos, ss->ply);
+    if (provenMate != VALUE_NONE)
+        return provenMate;
 
     // At non-PV nodes we check for an early TT cutoff
     if (!PvNode && ttData.depth >= DEPTH_QS
@@ -1808,6 +1845,29 @@ TimePoint Search::Worker::elapsed_time() const { return main_manager()->tm.elaps
 Value Search::Worker::evaluate(const Position& pos) {
     return Eval::evaluate(network[numaAccessToken], pos, accumulatorStack, refreshTable,
                           optimism[pos.side_to_move()]);
+}
+
+Value Search::Worker::maybe_probe_dtm(Position& pos, int ply) {
+    Value v = VALUE_NONE;
+    if (pos.dtz_is_dtm() && tbConfig.cardinality && !pos.can_castle(ANY_CASTLING))
+    {
+        int piecesCount = pos.count<ALL_PIECES>();
+        if (piecesCount <= tbConfig.cardinality
+            && (piecesCount < tbConfig.cardinality /*|| depth >= tbConfig.probeDepth*/))
+        { //std::cout << "TRYING DTM ()" << std::endl;
+            TB::ProbeState state;
+            int dtz = TB::probe_dtz(pos, &state);
+            if (dtz && state != TB::FAIL)
+            {
+                if (dtz == -1)
+                    v = mated_in(ply);
+                // Ignore the rounding issue, just stick with <= 99
+                else if (std::abs(dtz) + pos.rule50_count() <= 99)
+                    v = dtz > 0 ? mate_in(ply + dtz) : mated_in(ply - dtz);
+            }
+        }
+    }
+    return v;
 }
 
 namespace {
@@ -2050,6 +2110,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
     std::list<StateInfo> sts;
 
     // Step 0, do the rootMove, no correction allowed, as needed for MultiPV in TB.
+    // TODO: at rootNodes while in DTM, is it possible for this rootMove to be wrong DTM?
     auto& stRoot = sts.emplace_back();
     pos.do_move(rootMove.pv[0], stRoot);
     int ply = 1;
@@ -2063,7 +2124,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
         for (const auto& m : MoveList<LEGAL>(pos))
             legalMoves.emplace_back(m);
 
-        TB::Config config = TB::rank_root_moves(options, pos, legalMoves, false, time_abort);
+        TB::Config config = TB::rank_root_moves(options, pos, legalMoves, pos.dtz_is_dtm(), time_abort);
         RootMove&  rm     = *std::find(legalMoves.begin(), legalMoves.end(), pvMove);
 
         if (legalMoves[0].tbRank != rm.tbRank)
@@ -2099,6 +2160,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
         if (time_abort())
             break;
 
+        // For now, we only use Syzygy DTZ data when pos.dtz_is_dtm(), but maybe we'll have full DTM support soon?
         RootMoves legalMoves;
         for (const auto& m : MoveList<LEGAL>(pos))
         {
@@ -2130,7 +2192,6 @@ void syzygy_extend_pv(const OptionsMap&         options,
             break;
 
         ply++;
-
         Move& pvMove = legalMoves[0].pv[0];
         rootMove.pv.push_back(pvMove);
         auto& st = sts.emplace_back();
