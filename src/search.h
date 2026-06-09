@@ -376,6 +376,7 @@ class Worker {
     TimePoint elapsed() const;
 
     Value evaluate(const Position&);
+    Value maybe_probe_dtm(Position& pos, int ply);
 
     LimitsType limits;
 
