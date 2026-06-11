@@ -1130,6 +1130,13 @@ moves_loop:  // When in check, search starts here
         if (ss->ttPv)
             r += 1006;
 
+        // Increase reduction for recent repititions.
+        if (!capture && !givesCheck && pos.rule50_count() > 9
+            && (ss - 4)->currentMove.is_ok()
+            && move.from_sq() == (ss - 4)->currentMove.to_sq()
+            && move.to_sq() == (ss - 4)->currentMove.from_sq())
+            r += 909;
+
         // Step 14. Pruning at shallow depths.
         // Depth conditions are important for mate finding.
         if (!rootNode && pos.non_pawn_material(us) && !is_loss(bestValue))
