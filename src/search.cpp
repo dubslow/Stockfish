@@ -1277,6 +1277,9 @@ moves_loop:  // When in check, search starts here
             // over current beta
             else if (cutNode)
                 extension = -2;
+
+            if (extension < 0)
+                ttWriter.penalize(1);
         }
 
         u64 nodeCount = rootNode ? u64(nodes) : 0;
