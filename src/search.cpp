@@ -1259,6 +1259,7 @@ moves_loop:  // When in check, search starts here
             else if (value >= beta && !is_decisive(value))
             {
                 ttMoveHistory << -442 - 108 * depth;
+                ttWriter.penalize(1);
                 return value;
             }
 
