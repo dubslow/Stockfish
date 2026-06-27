@@ -200,8 +200,8 @@ Move* generate_pawn_moves(const Position& pos, Move* moveList, Bitboard target) 
             b2 &= target;
         }
 
-        moveList = splat_pawn_moves<Up>(moveList, b1);
         moveList = splat_pawn_moves<Up + Up>(moveList, b2);
+        moveList = splat_pawn_moves<Up>(moveList, b1);
     }
 
     // Promotions and underpromotions
