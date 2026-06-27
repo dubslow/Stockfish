@@ -1082,9 +1082,14 @@ moves_loop:  // When in check, search starts here
 
     // Step 12. A small Probcut idea
     probCutBeta = beta + 428;
-    if ((ttData.bound & BOUND_LOWER) && ttData.depth >= depth - 4 && ttData.value >= probCutBeta
-        && !is_decisive(beta) && is_valid(ttData.value) && !is_decisive(ttData.value))
-        return probCutBeta;
+    if (ttData.depth >= depth - 4 && ttData.value >= probCutBeta && !is_decisive(beta)
+        && is_valid(ttData.value) && !is_decisive(ttData.value))
+    {
+        if (ttData.bound & BOUND_LOWER)
+            return probCutBeta;
+        else if (ttData.bound & BOUND_UPPER)
+            ttWriter.penalize(1);
+    }
 
     const PieceToHistory* contHist[] = {
       (ss - 1)->continuationHistory, (ss - 2)->continuationHistory, (ss - 3)->continuationHistory,
