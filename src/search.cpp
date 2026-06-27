@@ -436,7 +436,7 @@ bool Search::Worker::iterative_deepening() {
                 delta += 44 * delta / 128;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
-            }
+            } // aspiration window loop
 
             if (threads.stop && pvIdx)
             {
@@ -478,13 +478,13 @@ bool Search::Worker::iterative_deepening() {
 
                         rootMoves[pvIdx].scoreLowerbound = !rootMoves[pvIdx].scoreUpperbound;
                     }
-                }
+                } // if (MultiPV aborted decisive)
 
                 // Finally, we mark all loss scores from partially searched moves as a bound.
                 for (usize i = pvIdx + 1; i < multiPV; ++i)
                     if (rootMoves[i].score_is_exact_loss())
                         rootMoves[i].scoreLowerbound = true;
-            }
+            } // if (threads.stop && pvIdx)
 
             // Sort the PV lines searched so far and update the GUI
             std::stable_sort(rootMoves.begin() + pvFirst, rootMoves.begin() + pvIdx + 1);
@@ -497,7 +497,7 @@ bool Search::Worker::iterative_deepening() {
 
             if (threads.stop)
                 break;
-        }
+        } // MultiPV for loop
 
         const bool forgottenMate = lastBestMoveScore != -VALUE_INFINITE
                                 && is_mate_or_mated(lastBestMoveScore)
@@ -607,11 +607,11 @@ bool Search::Worker::iterative_deepening() {
             }
             else
                 threads.increaseDepth = mainThread->ponder || elapsedTime <= totalTime * 0.50;
-        }
+        } // if (use time management)
 
         mainThread->iterValue[iterIdx] = bestValue;
         iterIdx                        = (iterIdx + 1) & 3;
-    }
+    } // iterative deepening while loop
 
     if (!mainThread)
         return false;
@@ -947,9 +947,9 @@ Value Search::Worker::search(
                     else
                         maxValue = value;
                 }
-            }
-        }
-    }
+            } // if (err != FAIL)
+        } // if (should probe)
+    } // if (can probe)
 
     if (ss->inCheck)
         goto moves_loop;
@@ -1020,7 +1020,7 @@ Value Search::Worker::search(
             if (v >= beta)
                 return nullValue;
         }
-    }
+    } // if (do null move search)
 
     improving |= ss->staticEval >= beta;
 
@@ -1075,8 +1075,8 @@ Value Search::Worker::search(
                 if (!is_decisive(value))
                     return value - (probCutBeta - beta);
             }
-        }
-    }
+        } // probcut moves loop
+    } // if (do probcut)
 
 moves_loop:  // When in check, search starts here
 
@@ -1212,8 +1212,8 @@ moves_loop:  // When in check, search starts here
                 // Prune moves with negative SEE
                 if (!pos.see_ge(move, -25 * lmrDepth * lmrDepth))
                     continue;
-            }
-        }
+            } // else if (!ss->followPV || !PvNode)
+        } // if (can move prune)
 
         // Step 15. Extensions
         // Singular extension search. If all moves but one
@@ -1277,7 +1277,7 @@ moves_loop:  // When in check, search starts here
             // over current beta
             else if (cutNode)
                 extension = -2;
-        }
+        } // if (can check singular)
 
         u64 nodeCount = rootNode ? u64(nodes) : 0;
 
@@ -1358,7 +1358,7 @@ moves_loop:  // When in check, search starts here
                 // Post LMR continuation history updates
                 update_continuation_histories(ss, movedPiece, move.to_sq(), 1415);
             }
-        }
+        } // if (late move)
 
         // Step 18. Full-depth search when LMR is skipped
         else if (!PvNode || moveCount > 1)
@@ -1450,7 +1450,7 @@ moves_loop:  // When in check, search starts here
                 // is not a problem when sorting because the sort is stable and the
                 // move position in the list is preserved - just the PV is pushed up.
                 rm.score = -VALUE_INFINITE;
-        }
+        } // if (rootNode)
 
         // In case we have an alternative move equal in eval to the current bestmove,
         // promote it to bestmove by pretending it just exceeds alpha (but not beta).
@@ -1494,7 +1494,7 @@ moves_loop:  // When in check, search starts here
             else
                 quietsSearched.push_back(move);
         }
-    }
+    } // main moves loop
 
     // Step 21. Check for mate and stalemate
     // All legal moves have been searched and if there are no legal moves, it
@@ -1702,7 +1702,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
             alpha = bestValue;
 
         futilityBase = ss->staticEval + 335;
-    }
+    } // else (!inCheck)
 
     const PieceToHistory* contHist[] = {(ss - 1)->continuationHistory};
 
@@ -1764,7 +1764,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
             // Do not search moves with bad enough SEE values
             if (!pos.see_ge(move, -74))
                 continue;
-        }
+        } // if (move prune)
 
         // Step 7. Make and search the move
         do_move(pos, move, st, givesCheck, ss);
@@ -1792,7 +1792,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
                     break;  // Fail high
             }
         }
-    }
+    } // QS moves loop
 
     // Step 9. Check for mate and stalemate
     // All legal moves have been searched. A special case: if we are
@@ -2121,7 +2121,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
         // If we cannot validate the full PV in time, we do not show it.
         if (config.rootInTB && time_abort())
             break;
-    }
+    } // while (ply < pv.size())
 
     // Resize the PV to the correct part
     rootMove.pv.resize(ply);
@@ -2170,7 +2170,7 @@ void syzygy_extend_pv(const OptionsMap&         options,
         rootMove.pv.push_back(pvMove);
         auto& st = sts.emplace_back();
         pos.do_move(pvMove, st);
-    }
+    } // while (not draw)
 
     // Finding a draw in this function is an exceptional case, that cannot happen when rule50 is false or
     // during engine game play, since we have a winning score, and play correctly
@@ -2263,7 +2263,7 @@ void SearchManager::pv(Search::Worker&           worker,
         info.hashfull  = tt.hashfull();
 
         updates.onUpdateFull(info);
-    }
+    } // multiPV for loop
 }
 
 // Called in case we have no ponder move before exiting the search,
