@@ -150,7 +150,7 @@ endif
 # the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=true`
 ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-avx512 x86-64-avxvnni \
-                 x86-64-bmi2 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-sse3-popcnt \
+                 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-sse3-popcnt \
                  x86-64 x86-32-sse41-popcnt x86-32-sse2 x86-32 ppc-64 ppc-64-altivec ppc-64-vsx ppc-32 e2k \
                  armv7 armv7-neon armv8 armv8-dotprod arm64-universal apple-silicon general-64 general-32 riscv64 \
                  loongarch64 loongarch64-lsx loongarch64-lasx wasm32 wasm32-relaxed-simd))
@@ -274,16 +274,6 @@ ifeq ($(findstring -avxvnni,$(ARCH)),-avxvnni)
 	sse41 = yes
 	avx2 = yes
 	avxvnni = yes
-	pext = yes
-endif
-
-ifeq ($(findstring -bmi2,$(ARCH)),-bmi2)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-	avx2 = yes
 	pext = yes
 endif
 
@@ -1016,7 +1006,6 @@ help:
 	echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support" && \
 	echo "x86-64-avx512           > x86 64-bit with avx512 support" && \
 	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
-	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
 	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
 	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
 	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
@@ -1371,7 +1360,7 @@ NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL         := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
-  UNIVERSAL_ARCHES := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 \
+  UNIVERSAL_ARCHES := x86-64 x86-64-sse41-popcnt x86-64-avx2 \
                       x86-64-avxvnni x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
   UNIVERSAL_ENTRY_OBJ  := $(TEMP_DIR)/entry_x86.o
   UNIVERSAL_ENTRY_SRC  := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
