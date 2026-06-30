@@ -433,7 +433,13 @@ bool Search::Worker::iterative_deepening() {
                 else
                     break;
 
-                delta += 44 * delta / 128;
+                // Refresh delta and optimism
+                delta = std::max(usize(172 * delta / 128), 5 + threadIdx % 8 + std::abs(rootMoves[pvIdx].meanSquaredScore) / 10588);
+                avg   = rootMoves[pvIdx].averageScore;
+
+                // Adjust optimism based on root move's averageScore
+                optimism[us]  = 137 * avg / (std::abs(avg) + 81);
+                optimism[~us] = -optimism[us];
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
