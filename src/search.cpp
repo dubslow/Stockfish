@@ -369,22 +369,23 @@ bool Search::Worker::iterative_deepening() {
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 0;
 
-            // Reset aspiration window starting size
-            delta     = 5 + threadIdx % 8 + std::abs(rootMoves[pvIdx].meanSquaredScore) / 10588;
-            Value avg = rootMoves[pvIdx].averageScore;
-            alpha     = std::max(avg - delta, -VALUE_INFINITE);
-            beta      = std::min(avg + delta, VALUE_INFINITE);
-
-            // Adjust optimism based on root move's averageScore
-            optimism[us]  = 137 * avg / (std::abs(avg) + 81);
-            optimism[~us] = -optimism[us];
-
             // Start with a small aspiration window and, in the case of a fail
             // high/low, re-search with a bigger window until we don't fail
             // high/low anymore.
             int failedHighCnt = 0;
+            delta = 5;
             while (true)
             {
+                // Reset aspiration window starting size
+                delta     = std::max(usize(172 * delta / 128), 5 + threadIdx % 8 + std::abs(rootMoves[pvIdx].meanSquaredScore) / 10588);
+                Value avg = rootMoves[pvIdx].averageScore;
+                alpha     = std::max(avg - delta, -VALUE_INFINITE);
+                beta      = std::min(avg + delta, VALUE_INFINITE);
+
+                // Adjust optimism based on root move's averageScore
+                optimism[us]  = 137 * avg / (std::abs(avg) + 81);
+                optimism[~us] = -optimism[us];
+
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every four searchAgain steps (see issue #2717).
                 Depth adjustedDepth =
@@ -432,8 +433,6 @@ bool Search::Worker::iterative_deepening() {
                 }
                 else
                     break;
-
-                delta += 44 * delta / 128;
 
                 assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
             }
