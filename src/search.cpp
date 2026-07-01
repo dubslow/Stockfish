@@ -1097,6 +1097,7 @@ moves_loop:  // When in check, search starts here
     value = bestValue;
 
     int moveCount = 0;
+    newDepth = depth - 1;
 
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1477,7 +1478,7 @@ moves_loop:  // When in check, search starts here
                 }
 
                 // Reduce other moves if we have found at least one score improvement
-                if (depth > 2 && depth < 13 && !is_decisive(value))
+                if (depth > 2 && newDepth < 13 && !is_decisive(value))
                     depth -= 2;
 
                 assert(depth > 0);
@@ -1505,7 +1506,7 @@ moves_loop:  // When in check, search starts here
 
     // Adjust best value for fail high cases
     if (bestValue >= beta && !is_decisive(bestValue) && !is_decisive(alpha))
-        bestValue = (bestValue * depth + beta) / (depth + 1);
+        bestValue = (bestValue * newDepth + beta) / (newDepth + 1);
 
     if (!moveCount)
         bestValue = excludedMove ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
@@ -1514,7 +1515,7 @@ moves_loop:  // When in check, search starts here
     // we update the stats of searched moves.
     else if (bestMove)
     {
-        update_all_stats(pos, ss, *this, bestMove, prevSq, quietsSearched, capturesSearched, depth,
+        update_all_stats(pos, ss, *this, bestMove, prevSq, quietsSearched, capturesSearched, newDepth,
                          ttData.move, PvNode);
         if (!PvNode)
             ttMoveHistory << (bestMove == ttData.move ? 792 : -779);
@@ -1525,7 +1526,7 @@ moves_loop:  // When in check, search starts here
     {
         int bonusScale = -245;
         bonusScale -= (ss - 1)->statScore / 98;
-        bonusScale += std::min(59 * depth, 430);
+        bonusScale += std::min(59 * newDepth, 430);
         bonusScale += 191 * ((ss - 1)->moveCount > 8);
         bonusScale += 143 * (!ss->inCheck && bestValue <= ss->staticEval - 103);
         bonusScale += 151 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 78);
@@ -1533,7 +1534,7 @@ moves_loop:  // When in check, search starts here
         bonusScale = std::max(bonusScale, 0);
 
         // scaledBonus ranges from 0 to roughly 2.3M, overflows happen for multipliers larger than 900
-        const int scaledBonus = std::min(141 * depth - 82, 1472) * bonusScale;
+        const int scaledBonus = std::min(141 * newDepth - 82, 1472) * bonusScale;
 
         update_continuation_histories(ss - 1, pos.piece_on(prevSq), prevSq,
                                       scaledBonus * 236 / 16384);
@@ -1567,7 +1568,7 @@ moves_loop:  // When in check, search starts here
                        bestValue >= beta    ? BOUND_LOWER
                        : PvNode && bestMove ? BOUND_EXACT
                                             : BOUND_UPPER,
-                       moveCount != 0 ? depth : std::min(MAX_PLY - 1, depth + 6), bestMove,
+                       moveCount != 0 ? newDepth + 1 : std::min(MAX_PLY - 1, newDepth + 6), bestMove,
                        unadjustedStaticEval, tt.generation());
 
     // Adjust correction history if the best move is not a capture
@@ -1576,7 +1577,7 @@ moves_loop:  // When in check, search starts here
         && (bestValue > ss->staticEval) == bool(bestMove))
     {
         auto bonus =
-          std::clamp(int(bestValue - ss->staticEval) * depth * (bestMove ? 12 : 18) / 128,
+          std::clamp(int(bestValue - ss->staticEval) * newDepth * (bestMove ? 12 : 18) / 128,
                      -CORRECTION_HISTORY_LIMIT / 4, CORRECTION_HISTORY_LIMIT / 4);
         update_correction_history(pos, ss, *this, 1114 * bonus / 1024);
     }
