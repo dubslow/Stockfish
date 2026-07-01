@@ -277,7 +277,7 @@ bool Search::Worker::iterative_deepening() {
     Value  bestValue     = -VALUE_INFINITE;
     Color  us            = rootPos.side_to_move();
     double timeReduction = 1, totBestMoveChanges = 0;
-    int    delta, iterIdx                        = 0;
+    int    delta, prevFailHighs = 0, iterIdx = 0;
 
     // Allocate stack with extra size to allow access from (ss - 7) to (ss + 2):
     // (ss - 7) is needed for update_continuation_histories(ss - 1) which accesses (ss - 6),
@@ -371,7 +371,7 @@ bool Search::Worker::iterative_deepening() {
 
             // Reset aspiration window starting size
             delta     = 5 + threadIdx % 8 + std::abs(rootMoves[pvIdx].meanSquaredScore) / 10588;
-            Value avg = rootMoves[pvIdx].averageScore;
+            Value avg = rootMoves[pvIdx].averageScore + prevFailHighs * delta;
             alpha     = std::max(avg - delta, -VALUE_INFINITE);
             beta      = std::min(avg + delta, VALUE_INFINITE);
 
@@ -497,6 +497,8 @@ bool Search::Worker::iterative_deepening() {
 
             if (threads.stop)
                 break;
+
+            prevFailHighs = failedHighCnt;
         }
 
         const bool forgottenMate = lastBestMoveScore != -VALUE_INFINITE
