@@ -1290,7 +1290,7 @@ moves_loop:  // When in check, search starts here
         // Decrease reduction for PvNodes (*Scaler)
         if (ss->ttPv)
             r -= 2766 + PvNode * 1017 + (ttData.value > alpha) * 838
-               + (ttData.depth >= depth) * (923 + cutNode * 955);
+               + (ttData.depth >= newDepth) * (923 + cutNode * 955);
 
         r += 714;  // Base reduction offset to compensate for other tweaks
         r -= moveCount * 62;
@@ -1325,10 +1325,10 @@ moves_loop:  // When in check, search starts here
 
         // Scale up reductions for expected ALL nodes
         if (allNode)
-            r += r * 272 / (256 * depth + 285);
+            r += r * 272 / (256 * newDepth + 285);
 
         // Step 17. Late moves reduction / extension (LMR)
-        if (depth >= 2 && moveCount > 1)
+        if (newDepth >= 2 && moveCount > 1)
         {
             // In general we want to cap the LMR depth search at newDepth, but when
             // reduction is negative, we allow this move a limited search extension
