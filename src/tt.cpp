@@ -77,7 +77,6 @@ struct TTEntry {
 
    private:
     friend class TranspositionTable;
-    friend struct TTWriter;
 
     RelaxedAtomic<u16>  key16;
     RelaxedAtomic<u8>   depth8;
@@ -140,12 +139,6 @@ void TTWriter::write(
   Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, u8 curr_generation) {
     entry->save(k, v, pv, b, d, m, ev, curr_generation);
 }
-
-void TTWriter::penalize(int penalty) {
-    // guard against racy underflows, default to "unoccupied"
-    entry->depth8 = std::max(int(entry->depth8) - penalty, 0);
-}
-
 
 // A TranspositionTable is an array of Cluster, of size clusterCount. Each cluster consists of ClusterSize number
 // of TTEntry. Each non-empty TTEntry contains information on exactly one position. The size of a Cluster should
