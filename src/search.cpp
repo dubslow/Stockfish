@@ -281,7 +281,7 @@ bool Search::Worker::iterative_deepening() {
     Value  bestValue     = -VALUE_INFINITE;
     Color  us            = rootPos.side_to_move();
     double timeReduction = 1, totBestMoveChanges = 0;
-    int    delta, iterIdx                        = 0;
+    int    delta, prevFailLows = 0, iterIdx = 0;
 
     // Allocate stack with extra size to allow access from (ss - 7) to (ss + 2):
     // (ss - 7) is needed for update_continuation_histories(ss - 1) which accesses (ss - 6),
@@ -374,7 +374,7 @@ bool Search::Worker::iterative_deepening() {
 
             // Reset aspiration window starting size
             delta     = 5 + threadIdx % 8 + std::abs(rootMoves[pvIdx].meanSquaredScore) / 10193;
-            Value avg = rootMoves[pvIdx].averageScore;
+            Value avg = rootMoves[pvIdx].averageScore - prevFailLows * delta / 16;
             alpha     = std::max(avg - delta, -VALUE_INFINITE);
             beta      = std::min(avg + delta, VALUE_INFINITE);
 
@@ -385,7 +385,7 @@ bool Search::Worker::iterative_deepening() {
             // Start with a small aspiration window and, in the case of a fail
             // high/low, re-search with a bigger window until we don't fail
             // high/low anymore.
-            int failedHighCnt = 0;
+            int failedHighCnt = 0, failedLowCnt = 0;
             while (true)
             {
                 // Adjust the effective depth searched, but ensure at least one
@@ -424,6 +424,7 @@ bool Search::Worker::iterative_deepening() {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failedHighCnt = 0;
+                    ++failedLowCnt;
                     if (mainThread)
                         mainThread->stopOnPonderhit = false;
                 }
@@ -431,6 +432,7 @@ bool Search::Worker::iterative_deepening() {
                 {
                     alpha = std::max(beta - delta, alpha);
                     beta  = std::min(bestValue + delta, VALUE_INFINITE);
+                    failedLowCnt = 0;
                     ++failedHighCnt;
                 }
                 else
@@ -500,6 +502,8 @@ bool Search::Worker::iterative_deepening() {
 
             if (threads.stop)
                 break;
+
+            prevFailLows = failedLowCnt;
         }
 
         const bool forgottenMate = lastBestMoveScore != -VALUE_INFINITE
