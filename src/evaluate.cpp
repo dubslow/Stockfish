@@ -76,10 +76,7 @@ Value scale_evaluation(Value nnue, int optimism, const Position& pos) {
     // Conversely, in hard positions, the optimism boost is minimized.
     // To maintain overall evaluation scale, the static NNUE score is dampened proportionally.
     // At average alignment of 2047, the optimism boost is around 1.5x.
-    optimism += (optimism * alignment) / 4096;
-    nnue     -= (i64(nnue) * alignment) / 131072;
-
-    int base_eval = nnue + (optimism * 7674) / 90649;
+    int base_eval = nnue - (i64(nnue) * alignment) / 131072 + ((optimism + (optimism * alignment) / 4096) * 7674) / 90649;
 
     // 4. Scale the combined evaluation by material volume.
     // Higher material on the board amplifies the final evaluation magnitude.
