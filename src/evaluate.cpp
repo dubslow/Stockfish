@@ -60,36 +60,26 @@ Value Eval::evaluate(const Eval::NNUE::Network&     network,
 Value scale_evaluation(Value nnue, int optimism, const Position& pos) {
     int se = Eval::simple_eval(pos);
 
-    // 1. Normalize the raw evaluations to [-1024, 1024] to measure their correlation.
+    // Normalize the raw evaluations to [-1024, 1024] to measure their correlation.
     int se_norm   = (se * 1024) / (std::abs(se) + 1024);
     int nnue_norm = (nnue * 1024) / (std::abs(nnue) + 1024);
-
-    // 2. Measure positional difficulty, "alignment". When NNUE and material agree, the position is
-    // straightforward; otherwise, it involves complex compensation. In a representative sample,
-    // raw_alignment averages -1 or so, i.e. well-centered in [-2048, 2048].
+    // When NNUE and material agree (positive alignment), the position is straightforward;
+    // otherwise (negative alignment) it involves complex compensation. In a representative
+    // sample, raw_alignment averages -1 or so, i.e. it is well-centered in [-2048, 2048].
     int raw_alignment = (se_norm * nnue_norm) / 512;
-    // Shift it to a positive range: [hard, average, easy] -> [0, 2048, 4096].
-    int alignment = raw_alignment + 2048;
 
-    // 3. Blend optimism and NNUE according to the alignment.
-    // We favor easy positions by heavily boosting optimism when alignment is high.
-    // Conversely, in hard positions, the optimism boost is minimized.
-    // To maintain overall evaluation scale, the static NNUE score is dampened proportionally.
-    // At average alignment of 2047, the optimism boost is around 1.5x.
-    optimism += (optimism * alignment) / 4096;
-    nnue     -= (i64(nnue) * alignment) / 131072;
+    // When winning, we favor easy positions, and vice versa.
+    // As raw_alignment is centered, overall eval scale is preserved
+    int base_eval = nnue + (nnue * raw_alignment) / 65536 + (optimism * raw_alignment) / 16384;
 
-    int base_eval = nnue + (optimism * 7674) / 90649;
-
-    // 4. Scale the combined evaluation by material volume.
-    // Higher material on the board amplifies the final evaluation magnitude.
+    // Scale the combined evaluation by material volume.
     int material = 521 * pos.count<PAWN>() + pos.non_pawn_material();
     int v = (base_eval * i64(90649 + material)) / 90649;
 
-    // 5. Damp down the evaluation linearly when shuffling
+    // Damp down the evaluation linearly when shuffling
     v -= v * pos.rule50_count() / 189;
 
-    // 6. Guarantee that the evaluation does not hit the tablebase range
+    // Guarantee evaluation does not hit the tablebase range
     v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 
     return v;
