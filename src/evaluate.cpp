@@ -68,15 +68,14 @@ Value scale_evaluation(Value nnue, int optimism, const Position& pos) {
     // straightforward; otherwise, it involves complex compensation. In a representative sample,
     // raw_alignment averages -1 or so, i.e. well-centered in [-2048, 2048].
     int raw_alignment = (se_norm * nnue_norm) / 512;
-    // Shift it to a positive range: [hard, average, easy] -> [0, 2048, 4096].
-    int alignment = raw_alignment + 2048;
 
     // 3. Blend optimism and NNUE according to the alignment.
     // We favor easy positions by heavily boosting optimism when alignment is high.
     // Conversely, in hard positions, the optimism boost is minimized.
     // To maintain overall evaluation scale, the static NNUE score is dampened proportionally.
     // At average alignment of 2047, the optimism boost is around 1.5x.
-    int base_eval = nnue - (i64(nnue) * alignment) / 131072 + (optimism * 173) / 2048 + (optimism * alignment) / 48384;
+    int base_eval = nnue + optimism * 114 / 1024 + raw_alignment / 64;
+
 
     // 4. Scale the combined evaluation by material volume.
     // Higher material on the board amplifies the final evaluation magnitude.
