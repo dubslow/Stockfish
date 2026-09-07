@@ -188,7 +188,7 @@ void Network::verify(const std::function<void(std::string_view)>& f,
         exit(EXIT_FAILURE);
     }
 
-    if (f)
+    if (false)
     {
         usize size = sizeof(featureTransformer) + sizeof(NetworkArchitecture) * LayerStacks;
         f("NNUE evaluation using " + evalfilePath.string() + " ("

@@ -294,7 +294,7 @@ void Engine::verify_network() const {
             message += " " + *error;
         }
 
-        onVerifyNetwork(message);
+        //onVerifyNetwork(message);
     }
 }
 
