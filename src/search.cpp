@@ -206,9 +206,11 @@ void Search::Worker::start_searching() {
 
     if (rootMoves.empty())
     {
+        /*
         main_manager()->updates.onUpdateNoMoves(
           {0, {rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW, rootPos}});
         main_manager()->updates.onBestmove(UCIEngine::move(Move::none()), "");
+        */
         return;
     }
 
@@ -251,6 +253,7 @@ void Search::Worker::start_searching() {
         && bestThread->rootMoves[0].extract_ponder_from_tt(tt, rootPos))
         uciPvSent = false;
 
+    /*
     // Send PV info if it has changed since last output in iterative_deepening()
     if (!uciPvSent || bestThread != this)
         main_manager()->output_pv(*bestThread, threads, tt, bestThread->rootDepth);
@@ -262,6 +265,7 @@ void Search::Worker::start_searching() {
 
     auto bestmove = UCIEngine::move(bestThread->rootMoves[0].pv[0], rootPos.is_chess960());
     main_manager()->updates.onBestmove(bestmove, ponder);
+    */
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing
@@ -408,12 +412,14 @@ bool Search::Worker::iterative_deepening() {
                 if (threads.stop)
                     break;
 
+                /*
                 // When failing high/low give some update before a re-search. To avoid
                 // excessive output that could hang GUIs like Fritz 19, only start
                 // at nodes > 10M (rather than depth N, which can be reached quickly).
                 if (mainThread && multiPV == 1 && (bestValue <= alpha || bestValue >= beta)
                     && nodes > NODES_LIMIT_OUTPUT)
                     main_manager()->output_pv(*this, threads, tt, rootDepth);
+                */
 
                 // In case of failing low/high increase aspiration window and re-search,
                 // otherwise exit the loop.
@@ -491,13 +497,13 @@ bool Search::Worker::iterative_deepening() {
 
             // Sort the PV lines searched so far and update the GUI
             std::stable_sort(rootMoves.begin() + pvFirst, rootMoves.begin() + pvIdx + 1);
-
+            /*
             if (mainThread && !threads.stop && (pvIdx + 1 == multiPV || nodes > NODES_LIMIT_OUTPUT))
             {
                 main_manager()->output_pv(*this, threads, tt, rootDepth);
                 uciPvSent = (pvIdx + 1 == multiPV);
             }
-
+            */
             if (threads.stop)
                 break;
         }
@@ -509,6 +515,8 @@ bool Search::Worker::iterative_deepening() {
 
         if (!threads.stop)
         {
+            completedDepth = rootDepth;
+
             if (lastBestMovePV.empty() || lastBestMovePV[0] != rootMoves[0].pv[0])
                 lastBestMoveDepth = rootDepth;
 
@@ -557,23 +565,23 @@ bool Search::Worker::iterative_deepening() {
         // If the skill level is enabled and time is up, pick a sub-optimal best move
         if (skill.enabled() && skill.time_to_pick(rootDepth))
             skill.pick_best(rootMoves, multiPV);
-            
+
         // start early exit analysis at depth 5
         const int startDepth = 5;
         if (completedDepth >= startDepth)
         {
-           int wdl_w = Stockfish::win_rate_model( bestValue, rootPos.game_ply());
-           int wdl_l = Stockfish::win_rate_model(-bestValue, rootPos.game_ply());
+           int wdl_w = Stockfish::win_rate_model( bestValue, rootPos);
+           int wdl_l = Stockfish::win_rate_model(-bestValue, rootPos);
            int wdl_d = 1000 - wdl_w - wdl_l;
            // final target a 400 - 600 draw rate.
-           // initiall allowing the full interval, but narrowing down as completedDepth is reached
+           // initially allowing the full interval, but narrowing down as completedDepth is reached
            const int target = 400;
-           double ratio   = std::pow(double(Limits.depth - completedDepth) / Limits.depth, 0.5);
-           double startit = std::pow(double(Limits.depth - startDepth) / Limits.depth, 0.5);
+           double ratio   = std::pow(double(limits.depth - completedDepth) / limits.depth, 0.5);
+           double startit = std::pow(double(limits.depth - startDepth) / limits.depth, 0.5);
            int margin = target * ratio / startit;
            // outside ofthe interval, exit early
            if (wdl_d <= target - margin || wdl_d >= 1000 - target + margin)
-               Threads.stop = true;
+               threads.stop = true;
         }
 
         // Use part of the gained time from a previous stable move for the current move
@@ -1153,12 +1161,12 @@ moves_loop:  // When in check, search starts here
             continue;
 
         ss->moveCount = ++moveCount;
-
+        /*
         if (rootNode && is_mainthread() && nodes > NODES_LIMIT_OUTPUT)
         {
             main_manager()->updates.onIter(
               {depth, UCIEngine::move(move, pos.is_chess960()), moveCount + pvIdx});
-        }
+        }*/
         if (PvNode)
             (ss + 1)->pv = nullptr;
 

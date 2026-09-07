@@ -355,6 +355,8 @@ class Worker {
     SharedHistories& sharedHistory;
     ContinuationHistory (&continuationHistory)[2][2];
 
+    Depth completedDepth;
+
    private:
     bool iterative_deepening();
 
