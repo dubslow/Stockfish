@@ -247,7 +247,7 @@ void UCIEngine::go(std::istringstream& is) {
 
 void UCIEngine::bench(std::istream& args) {
     std::string token;
-    u64         nodes = 0;
+    u64         nodes = 0, cnt = 0;
     u64         nodesSearched = 0;
     const auto& options       = engine.get_options();
 
@@ -299,6 +299,9 @@ void UCIEngine::bench(std::istream& args) {
             }
             else
                 engine.trace_eval();
+
+            if ((++cnt % 128) == 0)
+                std::cerr << "\rscored " << cnt << " fens...";
         }
     }
 
@@ -307,9 +310,8 @@ void UCIEngine::bench(std::istream& args) {
     dbg_print();
 
     std::cout << "\n==========================="    //
-              << "\nTotal time (ms) : " << elapsed  //
-              << "\nNodes searched  : " << nodes    //
-              << "\nNodes/second    : " << 1000 * nodes / elapsed << std::endl;
+              << "\nTotal time (ms) : " << elapsed << std::endl;
+    std::cerr << "\nFENs scored     : " << cnt << std::endl;
 
     // reset callback, to not capture a dangling reference to nodesSearched
     engine.set_on_update_full([&](const auto& i) { on_update_full(i, options["UCI_ShowWDL"]); });
