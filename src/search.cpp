@@ -919,9 +919,9 @@ Value Search::Worker::search(
                 return ttData.value;
         }
     }  // No cutoff, but why? Compare the aspiration window to the inexact bound
-    else if (!PvNode && !excludedMove && ttData.depth > depth - (ttData.value <= beta)
+    else if (!PvNode && !excludedMove
              && is_valid(ttData.value) && ttData.bound != BOUND_EXACT
-             && ttData.bound & (ttData.value >= beta ? BOUND_UPPER : BOUND_LOWER) && depth > 5)
+             && ttData.bound & (ttData.value >= beta ? BOUND_UPPER : BOUND_LOWER))
     {
         // If such a mismatch is the only reason cutoff failed, the TT entry is now useless
         ttWriter.penalize(1);
