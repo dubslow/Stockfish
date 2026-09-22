@@ -58,18 +58,11 @@ Value Eval::evaluate(const Eval::NNUE::Network&     network,
 
 // Applies search-dependent scaling (optimism and rule50) to the raw NNUE eval
 Value scale_evaluation(Value nnue, int optimism, const Position& pos) {
-    Value se = simple_eval(pos);
 
-    // Normalize the raw evaluations to [-1024, 1024] to measure their correlation.
-    int se_norm   = (se * 1024) / (std::abs(se) + 1024);
-    int nnue_norm = (nnue * 1024) / (std::abs(nnue) + 1024);
-    // When NNUE and material agree (positive alignment), the position is straightforward;
-    // otherwise (negative alignment) it involves complex compensation. In a representative
-    // sample, alignment averages -1 or so, i.e. it is well-centered in [-2048, 2048].
-    int alignment = (se_norm * nnue_norm) / 512;
+    int nnueComplexity = std::abs(2 * simple_eval(pos) - nnue) - 80;
 
     // When winning, we favor easy positions, and vice versa
-    int base_eval = nnue + (nnue * alignment) / 65536 + (optimism * alignment) / 16384;
+    int base_eval = nnue + (nnue * nnueComplexity) / 1928 + (optimism * nnueComplexity) / 476;
 
     // Scale the combined evaluation by total material
     int material = 521 * pos.count<PAWN>() + pos.non_pawn_material();
