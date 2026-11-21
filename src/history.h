@@ -35,7 +35,7 @@
 
 namespace Stockfish {
 
-constexpr int PAWN_HISTORY_BASE_SIZE   = 8192;  // has to be a power of 2
+constexpr int PAWN_HISTORY_BASE_SIZE   = 16384;  // has to be a power of 2
 constexpr int UINT_16_HISTORY_SIZE     = std::numeric_limits<u16>::max() + 1;
 constexpr int CORRHIST_BASE_SIZE       = 2 * UINT_16_HISTORY_SIZE;
 constexpr int CORRECTION_HISTORY_LIMIT = 1024;
@@ -216,10 +216,10 @@ struct SharedHistories {
     usize get_size() const { return sizeMinus1 + 1; }
 
     auto& pawn_entry(const Position& pos) {
-        return pawnHistory[pos.pawn_key() >> 1 & pawnHistSizeMinus1];
+        return pawnHistory[pos.pawn_key() & pawnHistSizeMinus1];
     }
     const auto& pawn_entry(const Position& pos) const {
-        return pawnHistory[pos.pawn_key() >> 1 & pawnHistSizeMinus1];
+        return pawnHistory[pos.pawn_key() & pawnHistSizeMinus1];
     }
 
     auto& pawn_correction_entry(const Position& pos) {
